@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Util;
@@ -14,7 +15,7 @@ namespace Octopus.Client.Repositories.Async
         IGet<TeamResource>,
         ICanExtendSpaceContext<ITeamsRepository>
     {
-        Task<List<ScopedUserRoleResource>> GetScopedUserRoles(TeamResource team);
+        Task<List<ScopedUserRoleResource>> GetScopedUserRoles(TeamResource team, CancellationToken token = default);
     }
 
     class TeamsRepository : MixedScopeBaseRepository<TeamResource>, ITeamsRepository
@@ -31,7 +32,7 @@ namespace Octopus.Client.Repositories.Async
             MinimumCompatibleVersion("2019.1.0");
         }
 
-        public async Task<List<ScopedUserRoleResource>> GetScopedUserRoles(TeamResource team)
+        public async Task<List<ScopedUserRoleResource>> GetScopedUserRoles(TeamResource team, CancellationToken token = default)
         {
             await ThrowIfServerVersionIsNotCompatible();
             
@@ -42,7 +43,7 @@ namespace Octopus.Client.Repositories.Async
             {
                 resources.AddRange(page.Items);
                 return true;
-            }).ConfigureAwait(false);
+            }, token).ConfigureAwait(false);
 
             return resources;
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Repositories.Async;
@@ -16,7 +17,7 @@ namespace Octopus.Client.Editors.Async
 
         public ProjectGroupResource Instance { get; private set; }
 
-        public async Task<ProjectGroupEditor> CreateOrModify(string name)
+        public async Task<ProjectGroupEditor> CreateOrModify(string name, CancellationToken token)
         {
             var existing = await repository.FindByName(name).ConfigureAwait(false);
             if (existing == null)
@@ -24,18 +25,18 @@ namespace Octopus.Client.Editors.Async
                 Instance = await repository.Create(new ProjectGroupResource
                 {
                     Name = name,
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
                 existing.Name = name;
 
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
         }
-        public async Task<ProjectGroupEditor> CreateOrModify(string name, string description)
+        public async Task<ProjectGroupEditor> CreateOrModify(string name, string description, CancellationToken token = default)
         {
             var existing = await repository.FindByName(name).ConfigureAwait(false);
             if (existing == null)
@@ -44,14 +45,14 @@ namespace Octopus.Client.Editors.Async
                 {
                     Name = name,
                     Description = description
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
                 existing.Name = name;
                 existing.Description = description;
 
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
@@ -63,9 +64,9 @@ namespace Octopus.Client.Editors.Async
             return this;
         }
 
-        public async Task<ProjectGroupEditor> Save()
+        public async Task<ProjectGroupEditor> Save(CancellationToken token = default)
         {
-            Instance = await repository.Modify(Instance).ConfigureAwait(false);
+            Instance = await repository.Modify(Instance, token).ConfigureAwait(false);
             return this;
         }
     }

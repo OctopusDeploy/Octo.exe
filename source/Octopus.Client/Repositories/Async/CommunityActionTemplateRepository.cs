@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Exceptions;
 using Octopus.Client.Model;
@@ -9,9 +10,9 @@ namespace Octopus.Client.Repositories.Async
 {
     public interface ICommunityActionTemplateRepository : IGet<CommunityActionTemplateResource>
     {
-        Task<ActionTemplateResource> GetInstalledTemplate(CommunityActionTemplateResource resource);
-        Task Install(CommunityActionTemplateResource resource);
-        Task UpdateInstallation(CommunityActionTemplateResource resource);
+        Task<ActionTemplateResource> GetInstalledTemplate(CommunityActionTemplateResource resource, CancellationToken token = default);
+        Task Install(CommunityActionTemplateResource resource, CancellationToken token = default);
+        Task UpdateInstallation(CommunityActionTemplateResource resource, CancellationToken token = default);
     }
 
     class CommunityActionTemplateRepository : BasicRepository<CommunityActionTemplateResource>, ICommunityActionTemplateRepository
@@ -20,7 +21,7 @@ namespace Octopus.Client.Repositories.Async
         {
         }
 
-        public Task Install(CommunityActionTemplateResource resource)
+        public Task Install(CommunityActionTemplateResource resource, CancellationToken token = default)
         {
             var baseLink = resource.Links["Installation"];
             var spaceResource = Repository.Scope.Apply(space => space,
@@ -29,13 +30,13 @@ namespace Octopus.Client.Repositories.Async
 
             if (spaceResource == null)
             {
-                return Client.Post(baseLink.ToString());
+                return Client.Post(baseLink.ToString(), token: token);
             }
 
-            return Client.Post<string>(baseLink.ToString(), null, new {spaceId = spaceResource.Id});
+            return Client.Post<string>(baseLink.ToString(), null, new {spaceId = spaceResource.Id}, token);
         }
 
-        public Task UpdateInstallation(CommunityActionTemplateResource resource)
+        public Task UpdateInstallation(CommunityActionTemplateResource resource, CancellationToken token = default)
         {
             var baseLink = resource.Links["Installation"];
             var spaceResource = Repository.Scope.Apply(space => space,
@@ -44,13 +45,13 @@ namespace Octopus.Client.Repositories.Async
 
             if (spaceResource == null)
             {
-                return Client.Put(baseLink.ToString());
+                return Client.Put(baseLink.ToString(), token);
             }
 
-            return Client.Put<string>(baseLink.ToString(), null, new {spaceId = spaceResource.Id});
+            return Client.Put<string>(baseLink.ToString(), null, new {spaceId = spaceResource.Id}, token);
         }
 
-        public Task<ActionTemplateResource> GetInstalledTemplate(CommunityActionTemplateResource resource)
+        public Task<ActionTemplateResource> GetInstalledTemplate(CommunityActionTemplateResource resource, CancellationToken token = default)
         {
             var baseLink = resource.Links["InstalledTemplate"];
             var spaceResource = Repository.Scope.Apply(space => space,
@@ -59,10 +60,10 @@ namespace Octopus.Client.Repositories.Async
 
             if (spaceResource == null)
             {
-                return Client.Get<ActionTemplateResource>(baseLink.ToString());
+                return Client.Get<ActionTemplateResource>(baseLink.ToString(), token: token);
             }
 
-            return Client.Get<ActionTemplateResource>(baseLink.ToString(), new {spaceId = spaceResource.Id});
+            return Client.Get<ActionTemplateResource>(baseLink.ToString(), new {spaceId = spaceResource.Id}, token);
         }
     }
 }

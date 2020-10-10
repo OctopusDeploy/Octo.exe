@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Model.Triggers;
@@ -17,9 +18,9 @@ namespace Octopus.Client.Editors.Async
 
         public ProjectTriggerResource Instance { get; private set; }
 
-        public async Task<ProjectTriggerEditor> CreateOrModify(ProjectResource project, string name, TriggerFilterResource filter, TriggerActionResource action)
+        public async Task<ProjectTriggerEditor> CreateOrModify(ProjectResource project, string name, TriggerFilterResource filter, TriggerActionResource action, CancellationToken token = default)
         {
-            var existing = await repository.FindByName(project, name).ConfigureAwait(false);
+            var existing = await repository.FindByName(project, name, token).ConfigureAwait(false);
             if (existing == null)
             {
                 Instance = await repository.Create(new ProjectTriggerResource
@@ -28,14 +29,14 @@ namespace Octopus.Client.Editors.Async
                     ProjectId = project.Id,
                     Filter = filter,
                     Action = action
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
                 existing.Name = name;
                 existing.Filter = filter;
                 existing.Action = action;
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
@@ -47,9 +48,9 @@ namespace Octopus.Client.Editors.Async
             return this;
         }
 
-        public async Task<ProjectTriggerEditor> Save()
+        public async Task<ProjectTriggerEditor> Save(CancellationToken token = default)
         {
-            Instance = await repository.Modify(Instance).ConfigureAwait(false);
+            Instance = await repository.Modify(Instance, token).ConfigureAwait(false);
             return this;
         }
     }

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 
@@ -6,9 +7,9 @@ namespace Octopus.Client.Repositories.Async
 {
     public interface IDefectsRepository
     {
-        Task<ResourceCollection<DefectResource>> GetDefects(ReleaseResource release);
-        Task RaiseDefect(ReleaseResource release, string description);
-        Task ResolveDefect(ReleaseResource release);
+        Task<ResourceCollection<DefectResource>> GetDefects(ReleaseResource release, CancellationToken token = default);
+        Task RaiseDefect(ReleaseResource release, string description, CancellationToken token = default);
+        Task ResolveDefect(ReleaseResource release, CancellationToken token = default);
     }
 
     class DefectsRepository : BasicRepository<DefectResource>, IDefectsRepository
@@ -18,19 +19,19 @@ namespace Octopus.Client.Repositories.Async
         {
         }
 
-        public Task<ResourceCollection<DefectResource>> GetDefects(ReleaseResource release)
+        public Task<ResourceCollection<DefectResource>> GetDefects(ReleaseResource release, CancellationToken token = default)
         {
-            return Client.List<DefectResource>(release.Link("Defects"));
+            return Client.List<DefectResource>(release.Link("Defects"), token: token);
         }
 
-        public Task RaiseDefect(ReleaseResource release, string description)
+        public Task RaiseDefect(ReleaseResource release, string description, CancellationToken token = default)
         {
-            return Client.Post(release.Link("ReportDefect"), new DefectResource(description));
+            return Client.Post(release.Link("ReportDefect"), new DefectResource(description), token: token);
         }
 
-        public Task ResolveDefect(ReleaseResource release)
+        public Task ResolveDefect(ReleaseResource release, CancellationToken token = default)
         {
-            return Client.Post(release.Link("ResolveDefect"));
+            return Client.Post(release.Link("ResolveDefect"), token: token);
         }
     }
 }

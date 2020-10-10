@@ -1,15 +1,16 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using Octopus.Client.Model;
 
 namespace Octopus.Client.Repositories.Async
 {
     public interface IVcsRunbookRepository
     {
-        Task<VcsRunbookResource> Get(string runbookId);
-        Task<VcsRunbookResource> Modify(VcsRunbookResource resource, string commitMessage = null);
-        Task<VcsRunbookResource> Create(VcsRunbookResource resource, string commitMessage = null);
-        Task Delete(VcsRunbookResource resource, string commitMessage = null);
-        Task<ResourceCollection<VcsRunbookResource>> List(string partialName = null, int skip = 0, int? take = null);
+        Task<VcsRunbookResource> Get(string runbookId, CancellationToken token = default);
+        Task<VcsRunbookResource> Modify(VcsRunbookResource resource, string commitMessage = null, CancellationToken token = default);
+        Task<VcsRunbookResource> Create(VcsRunbookResource resource, string commitMessage = null, CancellationToken token = default);
+        Task Delete(VcsRunbookResource resource, string commitMessage = null, CancellationToken token = default);
+        Task<ResourceCollection<VcsRunbookResource>> List(string partialName = null, int skip = 0, int? take = null, CancellationToken token = default);
     }
 
     public class VcsRunbookRepository : IVcsRunbookRepository
@@ -24,13 +25,13 @@ namespace Octopus.Client.Repositories.Async
             this.branch = branch;
         }
 
-        public Task<VcsRunbookResource> Get(string runbookId)
+        public Task<VcsRunbookResource> Get(string runbookId, CancellationToken token = default)
         {
             var uri = branch.Link(RunbookLinkId);
-            return repository.Client.Get<VcsRunbookResource>(uri, new { id = runbookId });
+            return repository.Client.Get<VcsRunbookResource>(uri, new { id = runbookId }, token);
         }
 
-        public Task<VcsRunbookResource> Modify(VcsRunbookResource resource, string commitMessage = null)
+        public Task<VcsRunbookResource> Modify(VcsRunbookResource resource, string commitMessage = null, CancellationToken token = default)
         {
             var uri = resource.Link("Self");
             var resourceWithCommit = new CommitResource<VcsRunbookResource>
@@ -38,11 +39,11 @@ namespace Octopus.Client.Repositories.Async
                 CommitMessage = commitMessage,
                 Resource = resource
             };
-            repository.Client.Put(uri, resourceWithCommit);
-            return repository.Client.Get<VcsRunbookResource>(uri);
+            repository.Client.Put(uri, resourceWithCommit, token: token);
+            return repository.Client.Get<VcsRunbookResource>(uri, token: token);
         }
 
-        public Task<VcsRunbookResource> Create(VcsRunbookResource resource, string commitMessage = null)
+        public Task<VcsRunbookResource> Create(VcsRunbookResource resource, string commitMessage = null, CancellationToken token = default)
         {
             var uri = branch.Link(RunbookLinkId);
             var resourceWithCommit = new CommitResource<VcsRunbookResource>
@@ -50,23 +51,23 @@ namespace Octopus.Client.Repositories.Async
                 CommitMessage = commitMessage,
                 Resource = resource
             };
-            return repository.Client.Post<CommitResource<VcsRunbookResource>, VcsRunbookResource>(uri, resourceWithCommit);
+            return repository.Client.Post<CommitResource<VcsRunbookResource>, VcsRunbookResource>(uri, resourceWithCommit, token: token);
         }
 
-        public Task Delete(VcsRunbookResource resource, string commitMessage = null)
+        public Task Delete(VcsRunbookResource resource, string commitMessage = null, CancellationToken token = default)
         {
             var uri = branch.Link(RunbookLinkId);
             var commit = new CommitResource
             {
                 CommitMessage = commitMessage
             };
-            return repository.Client.Delete(uri, new { id = resource.Id }, commit);
+            return repository.Client.Delete(uri, new { id = resource.Id }, commit, token);
         }
 
-        public Task<ResourceCollection<VcsRunbookResource>> List(string partialName = null, int skip = 0, int? take = null)
+        public Task<ResourceCollection<VcsRunbookResource>> List(string partialName = null, int skip = 0, int? take = null, CancellationToken token = default)
         {
             var uri = branch.Link(RunbookLinkId);
-            return repository.Client.List<VcsRunbookResource>(uri, new { skip, take, partialName });
+            return repository.Client.List<VcsRunbookResource>(uri, new { skip, take, partialName }, token);
         }
     }
 }

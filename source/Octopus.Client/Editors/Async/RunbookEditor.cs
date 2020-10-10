@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Repositories.Async;
@@ -21,9 +22,9 @@ namespace Octopus.Client.Editors.Async
 
         public Task<RunbookProcessEditor> RunbookProcess => runbookProcess.Value;
 
-        public async Task<RunbookEditor> CreateOrModify(ProjectResource project, string name, string description)
+        public async Task<RunbookEditor> CreateOrModify(ProjectResource project, string name, string description, CancellationToken token = default)
         {
-            var existing = await repository.FindByName(project, name).ConfigureAwait(false);
+            var existing = await repository.FindByName(project, name, token).ConfigureAwait(false);
 
             if (existing == null)
             {
@@ -32,22 +33,22 @@ namespace Octopus.Client.Editors.Async
                     ProjectId = project.Id,
                     Name = name,
                     Description = description
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
                 existing.Name = name;
                 existing.Description = description;
 
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
         }
 
-        public async Task<RunbookEditor> Load(string id)
+        public async Task<RunbookEditor> Load(string id, CancellationToken token = default)
         {
-            Instance = await repository.Get(id).ConfigureAwait(false);
+            Instance = await repository.Get(id, token).ConfigureAwait(false);
             return this;
         }
 
@@ -57,13 +58,13 @@ namespace Octopus.Client.Editors.Async
             return this;
         }
 
-        public async Task<RunbookEditor> Save()
+        public async Task<RunbookEditor> Save(CancellationToken token = default)
         {
-            Instance = await repository.Modify(Instance).ConfigureAwait(false);
+            Instance = await repository.Modify(Instance, token).ConfigureAwait(false);
             if (runbookProcess.IsValueCreated)
             {
                 var steps = await runbookProcess.Value.ConfigureAwait(false);
-                await steps.Save().ConfigureAwait(false);
+                await steps.Save(token).ConfigureAwait(false);
             }
             return this;
         }

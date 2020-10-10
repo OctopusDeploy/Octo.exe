@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Exceptions;
 using Octopus.Client.Extensibility;
@@ -101,43 +102,43 @@ namespace Octopus.Client.Repositories.Async
             }
         }
 
-        public virtual async Task<TResource> Create(TResource resource, object pathParameters = null)
+        public virtual async Task<TResource> Create(TResource resource, object pathParameters = null, CancellationToken token = default)
         {
             await ThrowIfServerVersionIsNotCompatible();
 
             var link = await ResolveLink().ConfigureAwait(false);
             await AssertSpaceIdMatchesResource(resource).ConfigureAwait(false);
             EnrichSpaceId(resource);
-            return await Client.Create(link, resource, pathParameters).ConfigureAwait(false);
+            return await Client.Create(link, resource, pathParameters, token).ConfigureAwait(false);
         }
 
-        public virtual async Task<TResource> Modify(TResource resource)
+        public virtual async Task<TResource> Modify(TResource resource, CancellationToken token = default)
         {
             await ThrowIfServerVersionIsNotCompatible().ConfigureAwait(false);
 
             await AssertSpaceIdMatchesResource(resource).ConfigureAwait(false);
-            return await Client.Update(resource.Links["Self"], resource).ConfigureAwait(false);
+            return await Client.Update(resource.Links["Self"], resource, token).ConfigureAwait(false);
         }
 
-        public async Task Delete(TResource resource)
+        public async Task Delete(TResource resource, CancellationToken token = default)
         {
             await ThrowIfServerVersionIsNotCompatible().ConfigureAwait(false);
 
             await AssertSpaceIdMatchesResource(resource).ConfigureAwait(false);
             
-            await Client.Delete(resource.Links["Self"]).ConfigureAwait(false);
+            await Client.Delete(resource.Links["Self"], token).ConfigureAwait(false);
         }
 
-        public async Task Paginate(Func<ResourceCollection<TResource>, bool> getNextPage, string path = null, object pathParameters = null)
+        public async Task Paginate(Func<ResourceCollection<TResource>, bool> getNextPage, string path = null, object pathParameters = null, CancellationToken token = default)
         {
             await ThrowIfServerVersionIsNotCompatible();
 
             var link = await ResolveLink().ConfigureAwait(false);
             var parameters = ParameterHelper.CombineParameters(GetAdditionalQueryParameters(), pathParameters);
-            await Client.Paginate(path ?? link, parameters, getNextPage).ConfigureAwait(false);
+            await Client.Paginate(path ?? link, parameters, getNextPage, token).ConfigureAwait(false);
         }
 
-        public async Task<TResource> FindOne(Func<TResource, bool> search, string path = null, object pathParameters = null)
+        public async Task<TResource> FindOne(Func<TResource, bool> search, string path = null, object pathParameters = null, CancellationToken token = default)
         {
             await ThrowIfServerVersionIsNotCompatible();
 
@@ -146,12 +147,12 @@ namespace Octopus.Client.Repositories.Async
             {
                 resource = page.Items.FirstOrDefault(search);
                 return resource == null;
-            }, path, pathParameters)
+            }, path, pathParameters, token)
                 .ConfigureAwait(false);
             return resource;
         }
 
-        public async Task<List<TResource>> FindMany(Func<TResource, bool> search, string path = null, object pathParameters = null)
+        public async Task<List<TResource>> FindMany(Func<TResource, bool> search, string path = null, object pathParameters = null, CancellationToken token = default)
         {
             await ThrowIfServerVersionIsNotCompatible();
 
@@ -160,28 +161,28 @@ namespace Octopus.Client.Repositories.Async
             {
                 resources.AddRange(page.Items.Where(search));
                 return true;
-            }, path, pathParameters)
+            }, path, pathParameters, token)
                 .ConfigureAwait(false);
             return resources;
         }
 
-        public Task<List<TResource>> FindAll(string path = null, object pathParameters = null)
+        public Task<List<TResource>> FindAll(string path = null, object pathParameters = null, CancellationToken token = default)
         {
             ThrowIfServerVersionIsNotCompatible().ConfigureAwait(false);
 
-            return FindMany(r => true, path, pathParameters);
+            return FindMany(r => true, path, pathParameters, token);
         }
 
-        public async Task<List<TResource>> GetAll()
+        public async Task<List<TResource>> GetAll(CancellationToken token = default)
         {
             await ThrowIfServerVersionIsNotCompatible();
 
             var link = await ResolveLink().ConfigureAwait(false);
             var parameters = ParameterHelper.CombineParameters(GetAdditionalQueryParameters(), new { id = IdValueConstant.IdAll });
-            return await Client.Get<List<TResource>>(link, parameters).ConfigureAwait(false);
+            return await Client.Get<List<TResource>>(link, parameters, token).ConfigureAwait(false);
         }
 
-        public Task<TResource> FindByName(string name, string path = null, object pathParameters = null)
+        public Task<TResource> FindByName(string name, string path = null, object pathParameters = null, CancellationToken token = default)
         {
             ThrowIfServerVersionIsNotCompatible().ConfigureAwait(false);
 
@@ -196,10 +197,10 @@ namespace Octopus.Client.Repositories.Async
                 var named = r as INamedResource;
                 if (named != null) return string.Equals((named.Name ?? string.Empty).Trim(), name, StringComparison.OrdinalIgnoreCase);
                 return false;
-            }, path, pathParameters);
+            }, path, pathParameters, token);
         }
 
-        public Task<List<TResource>> FindByNames(IEnumerable<string> names, string path = null, object pathParameters = null)
+        public Task<List<TResource>> FindByNames(IEnumerable<string> names, string path = null, object pathParameters = null, CancellationToken token = default)
         {
             ThrowIfServerVersionIsNotCompatible().ConfigureAwait(false);
 
@@ -209,10 +210,10 @@ namespace Octopus.Client.Repositories.Async
                 var named = r as INamedResource;
                 if (named != null) return nameSet.Contains((named.Name ?? string.Empty).Trim());
                 return false;
-            }, path, pathParameters);
+            }, path, pathParameters, token);
         }
 
-        public async Task<TResource> Get(string idOrHref)
+        public async Task<TResource> Get(string idOrHref, CancellationToken token = default)
         {
             await ThrowIfServerVersionIsNotCompatible();
 
@@ -223,12 +224,12 @@ namespace Octopus.Client.Repositories.Async
             var additionalQueryParameters = GetAdditionalQueryParameters();
             var parameters = ParameterHelper.CombineParameters(additionalQueryParameters, new { id = idOrHref });
             var  getTask = idOrHref.StartsWith("/", StringComparison.OrdinalIgnoreCase)
-                ? Client.Get<TResource>(idOrHref, additionalQueryParameters).ConfigureAwait(false)
-                : Client.Get<TResource>(link, parameters).ConfigureAwait(false);
+                ? Client.Get<TResource>(idOrHref, additionalQueryParameters, token).ConfigureAwait(false)
+                : Client.Get<TResource>(link, parameters, token).ConfigureAwait(false);
             return await getTask;
         }
 
-        public virtual async Task<List<TResource>> Get(params string[] ids)
+        public virtual async Task<List<TResource>> Get(CancellationToken token = default, params string[] ids)
         {
             await ThrowIfServerVersionIsNotCompatible();
 
@@ -250,18 +251,19 @@ namespace Octopus.Client.Repositories.Async
                 {
                     resources.AddRange(page.Items);
                     return true;
-                })
+                },
+                token)
                 .ConfigureAwait(false);
 
             return resources;
         }
 
-        public Task<TResource> Refresh(TResource resource)
+        public Task<TResource> Refresh(TResource resource, CancellationToken token = default)
         {
             ThrowIfServerVersionIsNotCompatible().ConfigureAwait(false);
 
             if (resource == null) throw new ArgumentNullException("resource");
-            return Get(resource.Id);
+            return Get(resource.Id, token);
         }
 
         protected virtual void EnrichSpaceId(TResource resource)

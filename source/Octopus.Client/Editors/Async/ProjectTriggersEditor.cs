@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Model.Triggers;
@@ -20,24 +21,24 @@ namespace Octopus.Client.Editors.Async
             this.owner = owner;
         }
 
-        public async Task<ProjectTriggerEditor> CreateOrModify(string name, TriggerFilterResource filter, TriggerActionResource action)
+        public async Task<ProjectTriggerEditor> CreateOrModify(string name, TriggerFilterResource filter, TriggerActionResource action, CancellationToken token = default)
         {
-            var projectTriggerBuilder = await new ProjectTriggerEditor(repository).CreateOrModify(owner, name, filter, action).ConfigureAwait(false);
+            var projectTriggerBuilder = await new ProjectTriggerEditor(repository).CreateOrModify(owner, name, filter, action, token).ConfigureAwait(false);
             trackedProjectTriggerBuilders.Add(projectTriggerBuilder);
             return projectTriggerBuilder;
         }
 
-        public async Task<ProjectTriggersEditor> Delete(string name)
+        public async Task<ProjectTriggersEditor> Delete(string name, CancellationToken token = default)
         {
-            var trigger = await repository.FindByName(owner, name).ConfigureAwait(false);
+            var trigger = await repository.FindByName(owner, name, token).ConfigureAwait(false);
             if (trigger != null)
-                await repository.Delete(trigger).ConfigureAwait(false);
+                await repository.Delete(trigger, token).ConfigureAwait(false);
             return this;
         }
 
-        public async Task<ProjectTriggersEditor> SaveAll()
+        public async Task<ProjectTriggersEditor> SaveAll(CancellationToken token = default)
         {
-            await Task.WhenAll(trackedProjectTriggerBuilders.Select(x => x.Save())).ConfigureAwait(false);
+            await Task.WhenAll(trackedProjectTriggerBuilders.Select(x => x.Save(token))).ConfigureAwait(false);
             return this;
         }
     }

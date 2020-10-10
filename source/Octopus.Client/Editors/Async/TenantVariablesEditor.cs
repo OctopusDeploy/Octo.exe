@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Repositories.Async;
@@ -18,9 +19,9 @@ namespace Octopus.Client.Editors.Async
 
         public TenantVariableResource Instance { get; private set; }
 
-        public async Task<TenantVariablesEditor> Load()
+        public async Task<TenantVariablesEditor> Load(CancellationToken token = default)
         {
-            Instance = await repository.GetVariables(tenant).ConfigureAwait(false);
+            Instance = await repository.GetVariables(tenant, token).ConfigureAwait(false);
             return this;
         }
 
@@ -30,9 +31,9 @@ namespace Octopus.Client.Editors.Async
             return this;
         }
 
-        public async Task<TenantVariablesEditor> Save()
+        public async Task<TenantVariablesEditor> Save(CancellationToken token = default)
         {
-            Instance = await repository.ModifyVariables(tenant, Instance).ConfigureAwait(false);
+            Instance = await repository.ModifyVariables(tenant, Instance, token).ConfigureAwait(false);
             return this;
         }
     }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Exceptions;
 using Octopus.Client.Model;
@@ -89,14 +90,15 @@ namespace Octopus.Client.Operations
         /// Executes the operation against the specified Octopus Deploy server.
         /// </summary>
         /// <param name="repository">The Octopus Deploy server repository.</param>
+        /// <param name="token">A cancellation token</param>
         /// <exception cref="System.ArgumentException">
         /// </exception>
-        public override async Task ExecuteAsync(IOctopusSpaceAsyncRepository repository)
+        public override async Task ExecuteAsync(IOctopusSpaceAsyncRepository repository, CancellationToken token = default)
         {
-            var selectedPools = GetWorkerPools(repository).ConfigureAwait(false);
-            var machinePolicy = GetMachinePolicy(repository).ConfigureAwait(false);
-            var machineTask = GetWorker(repository).ConfigureAwait(false);
-            var proxy = GetProxy(repository).ConfigureAwait(false);
+            var selectedPools = GetWorkerPools(repository, token).ConfigureAwait(false);
+            var machinePolicy = GetMachinePolicy(repository, token).ConfigureAwait(false);
+            var machineTask = GetWorker(repository, token).ConfigureAwait(false);
+            var proxy = GetProxy(repository, token).ConfigureAwait(false);
 
             var machine = await machineTask;
             ApplyBaseChanges(machine, await machinePolicy, await proxy);
@@ -104,14 +106,14 @@ namespace Octopus.Client.Operations
             machine.WorkerPoolIds = new ReferenceCollection((await selectedPools).Select(p => p.Id).ToArray());
 
             if (machine.Id != null)
-                await repository.Workers.Modify(machine).ConfigureAwait(false);
+                await repository.Workers.Modify(machine, token).ConfigureAwait(false);
             else
-                await repository.Workers.Create(machine).ConfigureAwait(false);
+                await repository.Workers.Create(machine, token: token).ConfigureAwait(false);
         }
 
-        async Task<List<WorkerPoolResource>> GetWorkerPools(IOctopusSpaceAsyncRepository repository)
+        async Task<List<WorkerPoolResource>> GetWorkerPools(IOctopusSpaceAsyncRepository repository, CancellationToken token = default)
         {
-            var selectedPools = await repository.WorkerPools.FindByNames(WorkerPoolNames).ConfigureAwait(false);
+            var selectedPools = await repository.WorkerPools.FindByNames(WorkerPoolNames, token: token).ConfigureAwait(false);
 
             var missing = WorkerPoolNames.Except(selectedPools.Select(p => p.Name), StringComparer.OrdinalIgnoreCase).ToList();
 
@@ -121,12 +123,12 @@ namespace Octopus.Client.Operations
             return selectedPools;
         }
 
-        async Task<WorkerResource> GetWorker(IOctopusSpaceAsyncRepository repository)
+        async Task<WorkerResource> GetWorker(IOctopusSpaceAsyncRepository repository, CancellationToken token = default)
         {
             var existing = default(WorkerResource);
             try
             {
-                existing = await repository.Workers.FindByName(MachineName).ConfigureAwait(false);
+                existing = await repository.Workers.FindByName(MachineName, token: token).ConfigureAwait(false);
                 if (!AllowOverwrite && existing?.Id != null)
                     throw new ArgumentException($"A worker named '{MachineName}' already exists. Use the 'force' parameter if you intended to update the existing machine.");
             }

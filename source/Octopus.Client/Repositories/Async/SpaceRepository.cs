@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Octopus.Client.Model;
@@ -12,7 +13,7 @@ namespace Octopus.Client.Repositories.Async
         IFindByName<SpaceResource>,
         IGet<SpaceResource>
     {
-        Task SetLogo(SpaceResource space, string fileName, Stream contents);
+        Task SetLogo(SpaceResource space, string fileName, Stream contents, CancellationToken token = default);
     }
 
     class SpaceRepository : BasicRepository<SpaceResource>, ISpaceRepository
@@ -21,9 +22,9 @@ namespace Octopus.Client.Repositories.Async
         {
         }
 
-        public Task SetLogo(SpaceResource space, string fileName, Stream contents)
+        public Task SetLogo(SpaceResource space, string fileName, Stream contents, CancellationToken token = default)
         {
-            return Client.Post(space.Link("Logo"), new FileUpload { Contents = contents, FileName = fileName }, false);
+            return Client.Post(space.Link("Logo"), new FileUpload { Contents = contents, FileName = fileName }, false, token);
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Repositories.Async;
+using System.Threading;
 
 namespace Octopus.Client.Editors.Async
 {
@@ -19,32 +20,32 @@ namespace Octopus.Client.Editors.Async
             this.owner = owner;
         }
 
-        public async Task<ChannelEditor> CreateOrModify(string name)
+        public async Task<ChannelEditor> CreateOrModify(string name, CancellationToken token = default)
         {
-            var channelBuilder = await new ChannelEditor(repository).CreateOrModify(owner, name).ConfigureAwait(false);
+            var channelBuilder = await new ChannelEditor(repository).CreateOrModify(owner, name, token).ConfigureAwait(false);
             trackedChannelBuilders.Add(channelBuilder);
             return channelBuilder;
         }
 
-        public async Task<ChannelEditor> CreateOrModify(string name, string description)
+        public async Task<ChannelEditor> CreateOrModify(string name, string description, CancellationToken token = default)
         {
-            var channelBuilder = await new ChannelEditor(repository).CreateOrModify(owner, name, description).ConfigureAwait(false);
+            var channelBuilder = await new ChannelEditor(repository).CreateOrModify(owner, name, description, token).ConfigureAwait(false);
             trackedChannelBuilders.Add(channelBuilder);
             return channelBuilder;
         }
 
-        public async Task<ProjectChannelsEditor> Delete(string name)
+        public async Task<ProjectChannelsEditor> Delete(string name, CancellationToken token = default)
         {
-            var channel = await repository.FindByName(owner, name).ConfigureAwait(false);
+            var channel = await repository.FindByName(owner, name, token).ConfigureAwait(false);
             if (channel != null)
-                await repository.Delete(channel).ConfigureAwait(false);
+                await repository.Delete(channel, token).ConfigureAwait(false);
             return this;
         }
 
-        public async Task<ProjectChannelsEditor> SaveAll()
+        public async Task<ProjectChannelsEditor> SaveAll(CancellationToken token = default)
         {
             await Task.WhenAll(
-                trackedChannelBuilders.Select(x => x.Save())
+                trackedChannelBuilders.Select(x => x.Save(token))
             ).ConfigureAwait(false);
             return this;
         }

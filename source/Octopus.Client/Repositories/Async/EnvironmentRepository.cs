@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Editors.Async;
 using Octopus.Client.Model;
@@ -17,7 +18,8 @@ namespace Octopus.Client.Repositories.Async
             string healthStatuses = null,
             string commStyles = null,
             string tenantIds = null,
-            string tenantTags = null);
+            string tenantTags = null, 
+            CancellationToken token = default);
         Task<EnvironmentsSummaryResource> Summary(
             string ids = null,
             string partialName = null,
@@ -28,11 +30,12 @@ namespace Octopus.Client.Repositories.Async
             string commStyles = null,
             string tenantIds = null,
             string tenantTags = null,
-            bool? hideEmptyEnvironments = false);
-        Task Sort(string[] environmentIdsInOrder);
-        Task<EnvironmentEditor> CreateOrModify(string name);
-        Task<EnvironmentEditor> CreateOrModify(string name, string description);
-        Task<EnvironmentEditor> CreateOrModify(string name, string description, bool allowDynamicInfrastructure);
+            bool? hideEmptyEnvironments = false, 
+            CancellationToken token = default);
+        Task Sort(string[] environmentIdsInOrder, CancellationToken token = default);
+        Task<EnvironmentEditor> CreateOrModify(string name, CancellationToken token = default);
+        Task<EnvironmentEditor> CreateOrModify(string name, string description, CancellationToken token = default);
+        Task<EnvironmentEditor> CreateOrModify(string name, string description, bool allowDynamicInfrastructure, CancellationToken token = default);
     }
 
     class EnvironmentRepository : BasicRepository<EnvironmentResource>, IEnvironmentRepository
@@ -51,7 +54,8 @@ namespace Octopus.Client.Repositories.Async
             string healthStatuses = null,
             string commStyles = null,
             string tenantIds = null,
-            string tenantTags = null)
+            string tenantTags = null,
+            CancellationToken token = default)
         {
             var resources = new List<MachineResource>();
 
@@ -69,7 +73,7 @@ namespace Octopus.Client.Repositories.Async
             {
                 resources.AddRange(page.Items);
                 return true;
-            }).ConfigureAwait(false);
+            }, token).ConfigureAwait(false);
 
             return resources;
         }
@@ -84,7 +88,8 @@ namespace Octopus.Client.Repositories.Async
             string commStyles = null,
             string tenantIds = null,
             string tenantTags = null,
-            bool? hideEmptyEnvironments = false)
+            bool? hideEmptyEnvironments = false,
+            CancellationToken token = default)
         {
             return await Client.Get<EnvironmentsSummaryResource>(await Repository.Link("EnvironmentsSummary").ConfigureAwait(false), new
             {
@@ -98,27 +103,27 @@ namespace Octopus.Client.Repositories.Async
                 tenantIds,
                 tenantTags,
                 hideEmptyEnvironments,
-            }).ConfigureAwait(false);
+            }, token).ConfigureAwait(false);
         }
 
-        public async Task Sort(string[] environmentIdsInOrder)
+        public async Task Sort(string[] environmentIdsInOrder, CancellationToken token = default)
         {
-            await Client.Put(await Repository.Link("EnvironmentSortOrder").ConfigureAwait(false), environmentIdsInOrder).ConfigureAwait(false);
+            await Client.Put(await Repository.Link("EnvironmentSortOrder").ConfigureAwait(false), environmentIdsInOrder, token: token).ConfigureAwait(false);
         }
 
-        public Task<EnvironmentEditor> CreateOrModify(string name)
+        public Task<EnvironmentEditor> CreateOrModify(string name, CancellationToken token = default)
         {
-            return new EnvironmentEditor(this).CreateOrModify(name);
+            return new EnvironmentEditor(this).CreateOrModify(name, token);
         }
 
-        public Task<EnvironmentEditor> CreateOrModify(string name, string description)
+        public Task<EnvironmentEditor> CreateOrModify(string name, string description, CancellationToken token = default)
         {
-            return new EnvironmentEditor(this).CreateOrModify(name, description);
+            return new EnvironmentEditor(this).CreateOrModify(name, description, token: token);
         }
 
-        public Task<EnvironmentEditor> CreateOrModify(string name, string description, bool allowDynamicInfrastructure)
+        public Task<EnvironmentEditor> CreateOrModify(string name, string description, bool allowDynamicInfrastructure, CancellationToken token = default)
         {
-            return new EnvironmentEditor(this).CreateOrModify(name, description, allowDynamicInfrastructure);
+            return new EnvironmentEditor(this).CreateOrModify(name, description, allowDynamicInfrastructure, token);
         }
     }
 }

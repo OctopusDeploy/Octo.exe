@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Repositories.Async;
@@ -40,9 +41,9 @@ namespace Octopus.Client.Editors.Async
 
         public IVariableTemplateContainerEditor<ProjectResource> VariableTemplates => Instance;
 
-        public async Task<ProjectEditor> CreateOrModify(string name, ProjectGroupResource projectGroup, LifecycleResource lifecycle)
+        public async Task<ProjectEditor> CreateOrModify(string name, ProjectGroupResource projectGroup, LifecycleResource lifecycle, CancellationToken token = default)
         {
-            var existing = await repository.FindByName(name).ConfigureAwait(false);
+            var existing = await repository.FindByName(name, token: token).ConfigureAwait(false);
 
             if (existing == null)
             {
@@ -51,7 +52,7 @@ namespace Octopus.Client.Editors.Async
                     Name = name,
                     ProjectGroupId = projectGroup.Id,
                     LifecycleId = lifecycle.Id,
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
@@ -59,15 +60,15 @@ namespace Octopus.Client.Editors.Async
                 existing.ProjectGroupId = projectGroup.Id;
                 existing.LifecycleId = lifecycle.Id;
 
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
         }
 
-        public async Task<ProjectEditor> CreateOrModify(string name, ProjectGroupResource projectGroup, LifecycleResource lifecycle, string description, string cloneId = null)
+        public async Task<ProjectEditor> CreateOrModify(string name, ProjectGroupResource projectGroup, LifecycleResource lifecycle, string description, string cloneId = null, CancellationToken token = default)
         {
-            var existing = await repository.FindByName(name).ConfigureAwait(false);
+            var existing = await repository.FindByName(name, token: token).ConfigureAwait(false);
 
             if (existing == null)
             {
@@ -77,7 +78,7 @@ namespace Octopus.Client.Editors.Async
                     ProjectGroupId = projectGroup.Id,
                     LifecycleId = lifecycle.Id,
                     Description = description
-                }, new { clone = cloneId }).ConfigureAwait(false);
+                }, new { clone = cloneId }, token).ConfigureAwait(false);
             }
             else
             {
@@ -86,17 +87,17 @@ namespace Octopus.Client.Editors.Async
                 existing.LifecycleId = lifecycle.Id;
                 existing.Description = description;
 
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
         }
 
-        public async Task<ProjectEditor> SetLogo(string logoFilePath)
+        public async Task<ProjectEditor> SetLogo(string logoFilePath, CancellationToken token = default)
         {
             using (var stream = new FileStream(logoFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                await repository.SetLogo(Instance, Path.GetFileName(logoFilePath), stream).ConfigureAwait(false);
+                await repository.SetLogo(Instance, Path.GetFileName(logoFilePath), stream, token).ConfigureAwait(false);
             }
 
             return this;
@@ -114,26 +115,26 @@ namespace Octopus.Client.Editors.Async
             return this;
         }
 
-        public async Task<ProjectEditor> Save()
+        public async Task<ProjectEditor> Save(CancellationToken token = default)
         {
-            Instance = await repository.Modify(Instance).ConfigureAwait(false);
+            Instance = await repository.Modify(Instance, token).ConfigureAwait(false);
             if (channels.IsValueCreated)
             {
-                await channels.Value.SaveAll().ConfigureAwait(false);
+                await channels.Value.SaveAll(token).ConfigureAwait(false);
             }
             if (deploymentProcess.IsValueCreated)
             {
                 var depProcess = await deploymentProcess.Value.ConfigureAwait(false);
-                await depProcess.Save().ConfigureAwait(false);
+                await depProcess.Save(token).ConfigureAwait(false);
             }
             if (triggers.IsValueCreated)
             {
-                await triggers.Value.SaveAll().ConfigureAwait(false);
+                await triggers.Value.SaveAll(token).ConfigureAwait(false);
             }
             if (variables.IsValueCreated)
             {
                 var vars = await variables.Value.ConfigureAwait(false);
-                await vars.Save().ConfigureAwait(false);
+                await vars.Save(token).ConfigureAwait(false);
             }
             return this;
         }

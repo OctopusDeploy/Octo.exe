@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 
@@ -17,20 +18,20 @@ namespace Octopus.Client.Repositories.Async
             MinimumCompatibleVersion("2019.1.0");
         }
 
-        public override async Task<UserRoleResource> Create(UserRoleResource resource, object pathParameters = null)
+        public override async Task<UserRoleResource> Create(UserRoleResource resource, object pathParameters = null, CancellationToken token = default)
         {
             await ThrowIfServerVersionIsNotCompatible();
             
             await RemoveInvalidPermissions(resource).ConfigureAwait(false);
-            return await base.Create(resource, pathParameters).ConfigureAwait(false);
+            return await base.Create(resource, pathParameters, token).ConfigureAwait(false);
         }
 
-        public override async Task<UserRoleResource> Modify(UserRoleResource resource)
+        public override async Task<UserRoleResource> Modify(UserRoleResource resource, CancellationToken token = default)
         {
             await ThrowIfServerVersionIsNotCompatible();
             
             await RemoveInvalidPermissions(resource).ConfigureAwait(false);
-            return await base.Modify(resource).ConfigureAwait(false);
+            return await base.Modify(resource, token).ConfigureAwait(false);
         }
 
         private async Task RemoveInvalidPermissions(UserRoleResource resource)

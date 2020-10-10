@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Util;
@@ -11,48 +12,51 @@ namespace Octopus.Client.Repositories.Async
 {
     public interface ITaskRepository : IPaginate<TaskResource>, IGet<TaskResource>, ICreate<TaskResource>, ICanExtendSpaceContext<ITaskRepository>
     {
-        Task<TaskResource> ExecuteHealthCheck(string description = null, int timeoutAfterMinutes = 5, int machineTimeoutAfterMinutes = 1, string environmentId = null, string[] machineIds = null, string restrictTo = null, string workerpoolId = null, string[] workerIds = null);
-        Task<TaskResource> ExecuteCalamariUpdate(string description = null, string[] machineIds = null);
-        Task<TaskResource> ExecuteBackup(string description = null);
-        Task<TaskResource> ExecuteTentacleUpgrade(string description = null, string environmentId = null, string[] machineIds = null, string restrictTo = null, string workerpooltId = null, string[] workerIds = null);
-        Task<TaskResource> ExecuteAdHocScript(string scriptBody, string[] machineIds = null, string[] environmentIds = null, string[] targetRoles = null, string description = null, string syntax = "PowerShell", BuiltInTasks.AdHocScript.TargetType? targetType = null);
-        Task<TaskDetailsResource> GetDetails(TaskResource resource, bool? includeVerboseOutput = null, int? tail = null);
-        Task<TaskResource> ExecuteActionTemplate(ActionTemplateResource resource, Dictionary<string, PropertyValueResource> properties, string[] machineIds = null, string[] environmentIds = null, string[] targetRoles = null, string description = null, BuiltInTasks.AdHocScript.TargetType? targetType = null);
-        Task<TaskResource> ExecuteCommunityActionTemplatesSynchronisation(string description = null);
+        Task<TaskResource> ExecuteHealthCheck(string description = null, int timeoutAfterMinutes = 5, int machineTimeoutAfterMinutes = 1, string environmentId = null, string[] machineIds = null, string restrictTo = null, string workerpoolId = null, string[] workerIds = null, CancellationToken token = default);
+        Task<TaskResource> ExecuteCalamariUpdate(string description = null, string[] machineIds = null, CancellationToken token = default);
+        Task<TaskResource> ExecuteBackup(string description = null, CancellationToken token = default);
+        Task<TaskResource> ExecuteTentacleUpgrade(string description = null, string environmentId = null, string[] machineIds = null, string restrictTo = null, string workerpooltId = null, string[] workerIds = null, CancellationToken token = default);
+        Task<TaskResource> ExecuteAdHocScript(string scriptBody, string[] machineIds = null, string[] environmentIds = null, string[] targetRoles = null, string description = null, string syntax = "PowerShell", BuiltInTasks.AdHocScript.TargetType? targetType = null, CancellationToken token = default);
+        Task<TaskDetailsResource> GetDetails(TaskResource resource, bool? includeVerboseOutput = null, int? tail = null, CancellationToken token = default);
+        Task<TaskResource> ExecuteActionTemplate(ActionTemplateResource resource, Dictionary<string, PropertyValueResource> properties, string[] machineIds = null, string[] environmentIds = null, string[] targetRoles = null, string description = null, BuiltInTasks.AdHocScript.TargetType? targetType = null, CancellationToken token = default);
+        Task<TaskResource> ExecuteCommunityActionTemplatesSynchronisation(string description = null, CancellationToken token = default);
         
         /// <summary>
         /// Gets all the active tasks (optionally limited to pageSize)
         /// </summary>
         /// <param name="pageSize">Number of items per page, setting to less than the total items still retreives all items, but uses multiple requests reducing memory load on the server</param>
+        /// <param name="token">A cancellation token</param>
         /// <returns></returns>
-        Task<List<TaskResource>> GetAllActive(int pageSize = int.MaxValue);
+        Task<List<TaskResource>> GetAllActive(int pageSize = int.MaxValue, CancellationToken token = default);
         
         /// <summary>
         /// Returns all active tasks (optionally limited to pageSize) along with a count of all tasks in each status
         /// </summary>
         /// <param name="pageSize"></param>
         /// <param name="skip"></param>
+        /// <param name="token">A cancellation token</param>
         /// <returns></returns>
-        Task<TaskResourceCollection> GetActiveWithSummary(int pageSize = int.MaxValue, int skip = 0);
+        Task<TaskResourceCollection> GetActiveWithSummary(int pageSize = int.MaxValue, int skip = 0, CancellationToken token = default);
 
         /// <summary>
         /// Returns all tasks (optionally limited to pageSize) along with a count of all tasks in each status
         /// </summary>
         /// <param name="pageSize"></param>
         /// <param name="skip"></param>
+        /// <param name="token">A cancellation token</param>
         /// <returns></returns>
-        Task<TaskResourceCollection> GetAllWithSummary(int pageSize = int.MaxValue, int skip = 0);
+        Task<TaskResourceCollection> GetAllWithSummary(int pageSize = int.MaxValue, int skip = 0, CancellationToken token = default);
         
-        Task<string> GetRawOutputLog(TaskResource resource);
-        Task<TaskTypeResource[]> GetTaskTypes();
-        Task Rerun(TaskResource resource);
-        Task Cancel(TaskResource resource);
-        Task ModifyState(TaskResource resource, TaskState newState, string reason);
-        Task<IReadOnlyList<TaskResource>> GetQueuedBehindTasks(TaskResource resource);
-        Task WaitForCompletion(TaskResource task, int pollIntervalSeconds = 4, int timeoutAfterMinutes = 0, Action<TaskResource[]> interval = null);
-        Task WaitForCompletion(TaskResource[] tasks, int pollIntervalSeconds = 4, int timeoutAfterMinutes = 0, Action<TaskResource[]> interval = null);
-        Task WaitForCompletion(TaskResource[] tasks, int pollIntervalSeconds = 4, int timeoutAfterMinutes = 0, Func<TaskResource[], Task> interval = null);
-        Task WaitForCompletion(TaskResource[] tasks, int pollIntervalSeconds = 4, TimeSpan? timeoutAfter = null, Func<TaskResource[], Task> interval = null);
+        Task<string> GetRawOutputLog(TaskResource resource, CancellationToken token = default);
+        Task<TaskTypeResource[]> GetTaskTypes(CancellationToken token = default);
+        Task Rerun(TaskResource resource, CancellationToken token = default);
+        Task Cancel(TaskResource resource, CancellationToken token = default);
+        Task ModifyState(TaskResource resource, TaskState newState, string reason, CancellationToken token = default);
+        Task<IReadOnlyList<TaskResource>> GetQueuedBehindTasks(TaskResource resource, CancellationToken token = default);
+        Task WaitForCompletion(TaskResource task, int pollIntervalSeconds = 4, int timeoutAfterMinutes = 0, Action<TaskResource[]> interval = null, CancellationToken token = default);
+        Task WaitForCompletion(TaskResource[] tasks, int pollIntervalSeconds = 4, int timeoutAfterMinutes = 0, Action<TaskResource[]> interval = null, CancellationToken token = default);
+        Task WaitForCompletion(TaskResource[] tasks, int pollIntervalSeconds = 4, int timeoutAfterMinutes = 0, Func<TaskResource[], Task> interval = null, CancellationToken token = default);
+        Task WaitForCompletion(TaskResource[] tasks, int pollIntervalSeconds = 4, TimeSpan? timeoutAfter = null, Func<TaskResource[], Task> interval = null, CancellationToken token = default);
     }
 
     class TaskRepository : MixedScopeBaseRepository<TaskResource>, ITaskRepository
@@ -69,7 +73,7 @@ namespace Octopus.Client.Repositories.Async
 
         public Task<TaskResource> ExecuteHealthCheck(
             string description = null, int timeoutAfterMinutes = 5, int machineTimeoutAfterMinutes = 1, string environmentId = null, string[] machineIds = null,
-            string restrictTo = null, string workerpoolId = null, string[] workerIds = null)
+            string restrictTo = null, string workerpoolId = null, string[] workerIds = null, CancellationToken token = default)
         {
             // Default space enabled -> Creates it in the default space
             // Default space disabled -> Fails
@@ -91,10 +95,10 @@ namespace Octopus.Client.Repositories.Async
                     }
                 }
             };
-            return Create(resource);
+            return Create(resource, token: token);
         }
 
-        public Task<TaskResource> ExecuteCalamariUpdate(string description = null, string[] machineIds = null)
+        public Task<TaskResource> ExecuteCalamariUpdate(string description = null, string[] machineIds = null, CancellationToken token = default)
         {
             EnsureSingleSpaceContext();
             var resource = new TaskResource
@@ -106,10 +110,10 @@ namespace Octopus.Client.Repositories.Async
                     {BuiltInTasks.UpdateCalamari.Arguments.MachineIds, machineIds}
                 }
             };
-            return Create(resource);
+            return Create(resource, token: token);
         }
 
-        public Task<TaskResource> ExecuteBackup(string description = null)
+        public Task<TaskResource> ExecuteBackup(string description = null, CancellationToken token = default)
         {
             EnsureSystemContext();
             var resource = new TaskResource
@@ -117,10 +121,10 @@ namespace Octopus.Client.Repositories.Async
                 Name = BuiltInTasks.Backup.Name,
                 Description = string.IsNullOrWhiteSpace(description) ? "Manual backup" : description
             };
-            return CreateSystemTask(resource);
+            return CreateSystemTask(resource, token);
         }
 
-        public async Task<TaskResource> ExecuteTentacleUpgrade(string description = null, string environmentId = null, string[] machineIds = null, string restrictTo = null, string workerpoolId = null, string[] workerIds = null)
+        public async Task<TaskResource> ExecuteTentacleUpgrade(string description = null, string environmentId = null, string[] machineIds = null, string restrictTo = null, string workerpoolId = null, string[] workerIds = null, CancellationToken token = default)
         {
             EnsureSingleSpaceContext();
             var resource = new TaskResource
@@ -138,13 +142,13 @@ namespace Octopus.Client.Repositories.Async
                     }
                 }
             };
-            return await Create(resource).ConfigureAwait(false);
+            return await Create(resource, token: token).ConfigureAwait(false);
         }
 
-        public async Task<TaskResource> ExecuteAdHocScript(string scriptBody, string[] machineIds = null, string[] environmentIds = null, string[] targetRoles = null, string description = null, string syntax = "PowerShell", BuiltInTasks.AdHocScript.TargetType? targetType = null)
+        public async Task<TaskResource> ExecuteAdHocScript(string scriptBody, string[] machineIds = null, string[] environmentIds = null, string[] targetRoles = null, string description = null, string syntax = "PowerShell", BuiltInTasks.AdHocScript.TargetType? targetType = null, CancellationToken token = default)
         {
             EnsureSingleSpaceContext();
-            await EnsureValidTargetType(targetType);
+            await EnsureValidTargetType(targetType, token);
             var resource = new TaskResource
             {
                 Name = BuiltInTasks.AdHocScript.Name,
@@ -159,7 +163,7 @@ namespace Octopus.Client.Repositories.Async
                     {BuiltInTasks.AdHocScript.Arguments.TargetType, targetType},
                 }
             };
-            return await Create(resource).ConfigureAwait(false);
+            return await Create(resource, token: token).ConfigureAwait(false);
         }
 
         public async Task<TaskResource> ExecuteActionTemplate(
@@ -169,10 +173,11 @@ namespace Octopus.Client.Repositories.Async
             string[] environmentIds = null,
             string[] targetRoles = null,
             string description = null,
-            BuiltInTasks.AdHocScript.TargetType? targetType = null)
+            BuiltInTasks.AdHocScript.TargetType? targetType = null, 
+            CancellationToken token = default)
         {
             if (string.IsNullOrEmpty(template?.Id)) throw new ArgumentException("The step template was either null, or has no ID");
-            await EnsureValidTargetType(targetType);
+            await EnsureValidTargetType(targetType, token);
             
             var resource = new TaskResource(){SpaceId = template.SpaceId};
             resource.Name = BuiltInTasks.AdHocScript.Name;
@@ -186,10 +191,10 @@ namespace Octopus.Client.Repositories.Async
                     {BuiltInTasks.AdHocScript.Arguments.Properties, properties},
                     {BuiltInTasks.AdHocScript.Arguments.TargetType, targetType},
                 };
-            return await Create(resource);
+            return await Create(resource, token: token);
         }
 
-        private async Task EnsureValidTargetType(BuiltInTasks.AdHocScript.TargetType? targetType)
+        private async Task EnsureValidTargetType(BuiltInTasks.AdHocScript.TargetType? targetType, CancellationToken token)
         {
             if (targetType == BuiltInTasks.AdHocScript.TargetType.OctopusServer)
             {
@@ -199,7 +204,7 @@ namespace Octopus.Client.Repositories.Async
             }
         }
 
-        public Task<TaskResource> ExecuteCommunityActionTemplatesSynchronisation(string description = null)
+        public Task<TaskResource> ExecuteCommunityActionTemplatesSynchronisation(string description = null, CancellationToken token = default)
         {
             EnsureSystemContext();
 
@@ -210,10 +215,10 @@ namespace Octopus.Client.Repositories.Async
                 Description = description ?? "Run " + BuiltInTasks.SyncCommunityActionTemplates.Name
             };
 
-            return CreateSystemTask(resource);
+            return CreateSystemTask(resource, token);
         }
 
-        public async Task<TaskDetailsResource> GetDetails(TaskResource resource, bool? includeVerboseOutput = null, int? tail = null)
+        public async Task<TaskDetailsResource> GetDetails(TaskResource resource, bool? includeVerboseOutput = null, int? tail = null, CancellationToken token = default)
         {
             var args = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             if (includeVerboseOutput.HasValue)
@@ -222,60 +227,60 @@ namespace Octopus.Client.Repositories.Async
             if (tail.HasValue)
                 args.Add("tail", tail.Value);
             var parameters = ParameterHelper.CombineParameters(GetAdditionalQueryParameters(), args);
-            return await Client.Get<TaskDetailsResource>(resource.Link("Details"), parameters).ConfigureAwait(false);
+            return await Client.Get<TaskDetailsResource>(resource.Link("Details"), parameters, token).ConfigureAwait(false);
         }
 
-        public async Task<string> GetRawOutputLog(TaskResource resource)
+        public async Task<string> GetRawOutputLog(TaskResource resource, CancellationToken token = default)
         {
-            return await Client.Get<string>(resource.Link("Raw"), GetAdditionalQueryParameters()).ConfigureAwait(false);
+            return await Client.Get<string>(resource.Link("Raw"), GetAdditionalQueryParameters(), token).ConfigureAwait(false);
         }
 
-        public async Task<TaskTypeResource[]> GetTaskTypes()
+        public async Task<TaskTypeResource[]> GetTaskTypes(CancellationToken token = default)
         {
-            return await Client.Get<TaskTypeResource[]>((await Client.Repository.LoadRootDocument()).Links["TaskTypes"]);
+            return await Client.Get<TaskTypeResource[]>((await Client.Repository.LoadRootDocument()).Links["TaskTypes"], token: token);
         }
 
-        public async Task Rerun(TaskResource resource)
-        {
-            EnsureTaskCanRunInTheCurrentContext(resource);
-            await Client.Post(resource.Link("Rerun"), (TaskResource)null).ConfigureAwait(false);
-        }
-
-        public async Task Cancel(TaskResource resource)
+        public async Task Rerun(TaskResource resource, CancellationToken token = default)
         {
             EnsureTaskCanRunInTheCurrentContext(resource);
-            await Client.Post(resource.Link("Cancel"), (TaskResource)null).ConfigureAwait(false);
+            await Client.Post(resource.Link("Rerun"), (TaskResource)null, token: token).ConfigureAwait(false);
         }
 
-        public async Task ModifyState(TaskResource resource, TaskState newState, string reason)
+        public async Task Cancel(TaskResource resource, CancellationToken token = default)
         {
             EnsureTaskCanRunInTheCurrentContext(resource);
-            await Client.Post(resource.Link("State"), new { state = newState, reason = reason }).ConfigureAwait(false);
+            await Client.Post(resource.Link("Cancel"), (TaskResource)null, token: token).ConfigureAwait(false);
         }
 
-        public async Task<IReadOnlyList<TaskResource>> GetQueuedBehindTasks(TaskResource resource)
+        public async Task ModifyState(TaskResource resource, TaskState newState, string reason, CancellationToken token = default)
         {
-            return await Client.ListAll<TaskResource>(resource.Link("QueuedBehind"), GetAdditionalQueryParameters()).ConfigureAwait(false);
+            EnsureTaskCanRunInTheCurrentContext(resource);
+            await Client.Post(resource.Link("State"), new { state = newState, reason = reason }, token: token).ConfigureAwait(false);
         }
 
-        public Task WaitForCompletion(TaskResource task, int pollIntervalSeconds = 4, int timeoutAfterMinutes = 0, Action<TaskResource[]> interval = null)
+        public async Task<IReadOnlyList<TaskResource>> GetQueuedBehindTasks(TaskResource resource, CancellationToken token = default)
         {
-            return WaitForCompletion(new[] { task }, pollIntervalSeconds, timeoutAfterMinutes, interval);
+            return await Client.ListAll<TaskResource>(resource.Link("QueuedBehind"), GetAdditionalQueryParameters(), token).ConfigureAwait(false);
         }
 
-        public Task WaitForCompletion(TaskResource[] tasks, int pollIntervalSeconds = 4, int timeoutAfterMinutes = 0, Action<TaskResource[]> interval = null)
+        public Task WaitForCompletion(TaskResource task, int pollIntervalSeconds = 4, int timeoutAfterMinutes = 0, Action<TaskResource[]> interval = null, CancellationToken token = default)
+        {
+            return WaitForCompletion(new[] { task }, pollIntervalSeconds, timeoutAfterMinutes, interval, token);
+        }
+
+        public Task WaitForCompletion(TaskResource[] tasks, int pollIntervalSeconds = 4, int timeoutAfterMinutes = 0, Action<TaskResource[]> interval = null, CancellationToken token = default)
         {
             Func<TaskResource[], Task> taskInterval = null;
             if (interval != null)
                 taskInterval = tr => Task.Run(() => interval(tr));
 
-            return WaitForCompletion(tasks, pollIntervalSeconds, timeoutAfterMinutes, taskInterval);
+            return WaitForCompletion(tasks, pollIntervalSeconds, timeoutAfterMinutes, taskInterval, token);
         }
 
-        public Task WaitForCompletion(TaskResource[] tasks, int pollIntervalSeconds = 4, int timeoutAfterMinutes = 0, Func<TaskResource[], Task> interval = null)
-            => WaitForCompletion(tasks, pollIntervalSeconds, TimeSpan.FromMinutes(timeoutAfterMinutes), interval);
+        public Task WaitForCompletion(TaskResource[] tasks, int pollIntervalSeconds = 4, int timeoutAfterMinutes = 0, Func<TaskResource[], Task> interval = null, CancellationToken token = default)
+            => WaitForCompletion(tasks, pollIntervalSeconds, TimeSpan.FromMinutes(timeoutAfterMinutes), interval, token);
 
-        public async Task WaitForCompletion(TaskResource[] tasks, int pollIntervalSeconds = 4, TimeSpan? timeoutAfter = null, Func<TaskResource[], Task> interval = null)
+        public async Task WaitForCompletion(TaskResource[] tasks, int pollIntervalSeconds = 4, TimeSpan? timeoutAfter = null, Func<TaskResource[], Task> interval = null, CancellationToken token = default)
         {
             var start = Stopwatch.StartNew();
             if (tasks == null || tasks.Length == 0)
@@ -284,7 +289,7 @@ namespace Octopus.Client.Repositories.Async
             while (true)
             {
                 var stillRunning = await Task.WhenAll(
-                        tasks.Select(t => Client.Get<TaskResource>(t.Link("Self"), additionalQueryParameters))
+                        tasks.Select(t => Client.Get<TaskResource>(t.Link("Self"), additionalQueryParameters, token))
                     )
                     .ConfigureAwait(false);
 
@@ -299,17 +304,17 @@ namespace Octopus.Client.Repositories.Async
                     throw new TimeoutException($"One or more tasks did not complete before the timeout was reached. We waited {start.Elapsed:hh\\:mm\\:ss}  for the tasks to complete.");
                 }
 
-                await Task.Delay(TimeSpan.FromSeconds(pollIntervalSeconds)).ConfigureAwait(false);
+                await Task.Delay(TimeSpan.FromSeconds(pollIntervalSeconds), token).ConfigureAwait(false);
             }
         }
 
-        public Task<List<TaskResource>> GetAllActive(int pageSize = int.MaxValue) => FindAll(pathParameters: new { active = true, take = pageSize });
+        public Task<List<TaskResource>> GetAllActive(int pageSize = int.MaxValue, CancellationToken token = default) => FindAll(pathParameters: new { active = true, take = pageSize }, token: token);
 
-        public async Task<TaskResourceCollection> GetActiveWithSummary(int pageSize = int.MaxValue, int skip = 0)
-            => await Client.Get<TaskResourceCollection>(await ResolveLink(), new {active = true, take = pageSize, skip});
+        public async Task<TaskResourceCollection> GetActiveWithSummary(int pageSize = int.MaxValue, int skip = 0, CancellationToken token = default)
+            => await Client.Get<TaskResourceCollection>(await ResolveLink(), new {active = true, take = pageSize, skip}, token);
 
-        public async Task<TaskResourceCollection> GetAllWithSummary(int pageSize = int.MaxValue, int skip = 0)
-            => await Client.Get<TaskResourceCollection>(await ResolveLink(), new {take = pageSize, skip});
+        public async Task<TaskResourceCollection> GetAllWithSummary(int pageSize = int.MaxValue, int skip = 0, CancellationToken token = default)
+            => await Client.Get<TaskResourceCollection>(await ResolveLink(), new {take = pageSize, skip}, token);
 
         public ITaskRepository UsingContext(SpaceContext spaceContext)
         {
@@ -331,9 +336,9 @@ namespace Octopus.Client.Repositories.Async
             }, () => { });
         }
 
-        async Task<TaskResource> CreateSystemTask(TaskResource task)
+        async Task<TaskResource> CreateSystemTask(TaskResource task, CancellationToken token)
         {
-            return await Client.Create(await Repository.Link(CollectionLinkName).ConfigureAwait(false), task).ConfigureAwait(false);
+            return await Client.Create(await Repository.Link(CollectionLinkName).ConfigureAwait(false), task, token: token).ConfigureAwait(false);
         }
     }
 

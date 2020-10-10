@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Model.Endpoints;
@@ -22,9 +23,10 @@ namespace Octopus.Client.Editors.Async
             string name,
             EndpointResource endpoint,
             EnvironmentResource[] environments,
-            string[] roles)
+            string[] roles,
+            CancellationToken token = default)
         {
-            var existing = await repository.FindByName(name).ConfigureAwait(false);
+            var existing = await repository.FindByName(name, token: token).ConfigureAwait(false);
             if (existing == null)
             {
                 Instance = await repository.Create(new MachineResource
@@ -33,7 +35,7 @@ namespace Octopus.Client.Editors.Async
                     Endpoint = endpoint,
                     EnvironmentIds = new ReferenceCollection(environments.Select(e => e.Id)),
                     Roles = new ReferenceCollection(roles)
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
@@ -42,7 +44,7 @@ namespace Octopus.Client.Editors.Async
                 existing.EnvironmentIds.ReplaceAll(environments.Select(e => e.Id));
                 existing.Roles.ReplaceAll(roles);
 
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
@@ -55,9 +57,10 @@ namespace Octopus.Client.Editors.Async
             string[] roles,
             TenantResource[] tenants,
             TagResource[] tenantTags, 
-            TenantedDeploymentMode? tenantedDeploymentParticipation = null)
+            TenantedDeploymentMode? tenantedDeploymentParticipation = null,
+            CancellationToken token = default)
         {
-            var existing = await repository.FindByName(name).ConfigureAwait(false);
+            var existing = await repository.FindByName(name, token: token).ConfigureAwait(false);
             
             if (existing == null)
             {
@@ -76,7 +79,7 @@ namespace Octopus.Client.Editors.Async
                     resource.TenantedDeploymentParticipation = tenantedDeploymentParticipation.Value;
                 }
                 
-                Instance = await repository.Create(resource).ConfigureAwait(false);
+                Instance = await repository.Create(resource, token: token).ConfigureAwait(false);
             }
             else
             {
@@ -92,7 +95,7 @@ namespace Octopus.Client.Editors.Async
                     existing.TenantedDeploymentParticipation = tenantedDeploymentParticipation.Value;
                 }
 
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
@@ -134,9 +137,9 @@ namespace Octopus.Client.Editors.Async
             return this;
         }
 
-        public async Task<MachineEditor> Save()
+        public async Task<MachineEditor> Save(CancellationToken token = default)
         {
-            Instance = await repository.Modify(Instance).ConfigureAwait(false);
+            Instance = await repository.Modify(Instance, token).ConfigureAwait(false);
             return this;
         }
     }

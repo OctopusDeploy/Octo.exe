@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Exceptions;
 using Octopus.Client.Model;
@@ -143,28 +144,29 @@ namespace Octopus.Client.Operations
         /// Executes the operation against the specified Octopus Deploy server.
         /// </summary>
         /// <param name="repository">The Octopus Deploy server repository.</param>
+        /// <param name="token">A cancellation token</param>
         /// <exception cref="System.ArgumentException">
         /// </exception>
-        public override async Task ExecuteAsync(IOctopusSpaceAsyncRepository repository)
+        public override async Task ExecuteAsync(IOctopusSpaceAsyncRepository repository, CancellationToken token = default)
         {
-            var selectedEnvironments = GetEnvironments(repository).ConfigureAwait(false);
-            var machinePolicy = GetMachinePolicy(repository).ConfigureAwait(false);
-            var machineTask = GetMachine(repository).ConfigureAwait(false);
-            var tenants = GetTenants(repository).ConfigureAwait(false);
-            await ValidateTenantTags(repository).ConfigureAwait(false);
-            var proxy = GetProxy(repository).ConfigureAwait(false);
+            var selectedEnvironments = GetEnvironments(repository, token).ConfigureAwait(false);
+            var machinePolicy = GetMachinePolicy(repository, token).ConfigureAwait(false);
+            var machineTask = GetMachine(repository, token).ConfigureAwait(false);
+            var tenants = GetTenants(repository, token).ConfigureAwait(false);
+            await ValidateTenantTags(repository, token).ConfigureAwait(false);
+            var proxy = GetProxy(repository, token).ConfigureAwait(false);
 
             var machine = await machineTask;
             ApplyBaseChanges(machine, await machinePolicy, await proxy);
             ApplyDeploymentTargetChanges(machine, await selectedEnvironments, await tenants);
 
             if (machine.Id != null)
-                await repository.Machines.Modify(machine).ConfigureAwait(false);
+                await repository.Machines.Modify(machine, token).ConfigureAwait(false);
             else
-                await repository.Machines.Create(machine).ConfigureAwait(false);
+                await repository.Machines.Create(machine, token).ConfigureAwait(false);
         }
 
-        async Task<List<TenantResource>> GetTenants(IOctopusSpaceAsyncRepository repository)
+        async Task<List<TenantResource>> GetTenants(IOctopusSpaceAsyncRepository repository, CancellationToken token = default)
         {
             if (Tenants == null || !Tenants.Any())
             {
@@ -174,14 +176,14 @@ namespace Octopus.Client.Operations
             var tenantsByName = new List<TenantResource>();
             foreach (var tenantName in Tenants)
             {
-                var tenant = await repository.Tenants.FindByName(tenantName).ConfigureAwait(false);
+                var tenant = await repository.Tenants.FindByName(tenantName, token: token).ConfigureAwait(false);
                 if (tenant != null)
                     tenantsByName.Add(tenant);
             }
 
             var missing = Tenants.Except(tenantsByName.Select(e => e.Name), StringComparer.OrdinalIgnoreCase).ToArray();
 
-            var tenantsById = await repository.Tenants.Get(missing).ConfigureAwait(false);
+            var tenantsById = await repository.Tenants.Get(token, missing).ConfigureAwait(false);
             missing = missing.Except(tenantsById.Select(e => e.Id), StringComparer.OrdinalIgnoreCase).ToArray();
 
             if (missing.Any())
@@ -190,24 +192,24 @@ namespace Octopus.Client.Operations
             return tenantsById.Concat(tenantsByName).ToList();
         }
 
-        async Task ValidateTenantTags(IOctopusSpaceAsyncRepository repository)
+        async Task ValidateTenantTags(IOctopusSpaceAsyncRepository repository, CancellationToken token = default)
         {
             if (TenantTags == null || !TenantTags.Any())
                 return;
 
-            var tagSets = await repository.TagSets.FindAll().ConfigureAwait(false);
+            var tagSets = await repository.TagSets.FindAll(token: token).ConfigureAwait(false);
             var missingTags = TenantTags.Where(tt => !tagSets.Any(ts => ts.Tags.Any(t => t.CanonicalTagName.Equals(tt, StringComparison.OrdinalIgnoreCase)))).ToList();
 
             if (missingTags.Any())
                 throw new ArgumentException(CouldNotFindMessage("tag", missingTags.ToArray()));
         }
 
-        async Task<List<EnvironmentResource>> GetEnvironments(IOctopusSpaceAsyncRepository repository)
+        async Task<List<EnvironmentResource>> GetEnvironments(IOctopusSpaceAsyncRepository repository, CancellationToken token = default)
         {
             var selectedEnvironments = new List<EnvironmentResource>();
             foreach (var environmentName in EnvironmentNames)
             {
-                var environment = await repository.Environments.FindByName(environmentName).ConfigureAwait(false);
+                var environment = await repository.Environments.FindByName(environmentName, token: token).ConfigureAwait(false);
                 if (environment != null)
                     selectedEnvironments.Add(environment);
             }
@@ -220,12 +222,12 @@ namespace Octopus.Client.Operations
             return selectedEnvironments;
         }
 
-        async Task<MachineResource> GetMachine(IOctopusSpaceAsyncRepository repository)
+        async Task<MachineResource> GetMachine(IOctopusSpaceAsyncRepository repository, CancellationToken token = default)
         {
             var existing = default(MachineResource);
             try
             {
-                existing = await repository.Machines.FindByName(MachineName).ConfigureAwait(false);
+                existing = await repository.Machines.FindByName(MachineName, token: token).ConfigureAwait(false);
                 if (!AllowOverwrite && existing?.Id != null)
                     throw new ArgumentException($"A machine named '{MachineName}' already exists in the environment. Use the 'force' parameter if you intended to update the existing machine.");
             }

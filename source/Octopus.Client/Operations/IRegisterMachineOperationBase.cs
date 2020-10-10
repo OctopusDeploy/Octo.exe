@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 
@@ -77,18 +78,21 @@ namespace Octopus.Client.Operations
         /// Executes the operation against the specified Octopus Deploy server.
         /// </summary>
         /// <param name="serverEndpoint">The Octopus Deploy server endpoint.</param>
-        Task ExecuteAsync(OctopusServerEndpoint serverEndpoint);
+        /// <param name="token">A cancellation token</param>
+        Task ExecuteAsync(OctopusServerEndpoint serverEndpoint, CancellationToken token = default);
 
         /// <summary>
         /// Executes the operation against the specified Octopus Deploy server.
         /// </summary>
         /// <param name="repository">The Octopus Deploy repository.</param>
-        Task ExecuteAsync(OctopusAsyncRepository repository);
+        /// <param name="token">A cancellation token</param>
+        Task ExecuteAsync(OctopusAsyncRepository repository, CancellationToken token = default);
 
         /// <summary>
         /// Executes the operation against the specified Octopus Deploy server.
         /// </summary>
         /// <param name="repository">The Octopus Deploy repository.</param>
-        Task ExecuteAsync(IOctopusSpaceAsyncRepository repository);
+        /// <param name="token">A cancellation token</param>
+        Task ExecuteAsync(IOctopusSpaceAsyncRepository repository, CancellationToken token = default);
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 
@@ -6,8 +7,8 @@ namespace Octopus.Client.Repositories.Async
 {
     public interface IMachinePolicyRepository : IFindByName<MachinePolicyResource>, ICreate<MachinePolicyResource>, IModify<MachinePolicyResource>, IGet<MachinePolicyResource>, IDelete<MachinePolicyResource>
     {
-        Task<List<MachineResource>> GetMachines(MachinePolicyResource machinePolicy);
-        Task<MachinePolicyResource> GetTemplate();
+        Task<List<MachineResource>> GetMachines(MachinePolicyResource machinePolicy, CancellationToken token = default);
+        Task<MachinePolicyResource> GetTemplate(CancellationToken token = default);
 
     }
 
@@ -17,7 +18,7 @@ namespace Octopus.Client.Repositories.Async
         {
         }
 
-        public async Task<List<MachineResource>> GetMachines(MachinePolicyResource machinePolicy)
+        public async Task<List<MachineResource>> GetMachines(MachinePolicyResource machinePolicy, CancellationToken token = default)
         {
             var resources = new List<MachineResource>();
 
@@ -25,15 +26,15 @@ namespace Octopus.Client.Repositories.Async
             {
                 resources.AddRange(page.Items);
                 return true;
-            }).ConfigureAwait(false);
+            }, token).ConfigureAwait(false);
 
             return resources;
         }
 
-        public async Task<MachinePolicyResource> GetTemplate()
+        public async Task<MachinePolicyResource> GetTemplate(CancellationToken token = default)
         {
             var link = await Repository.Link("MachinePolicyTemplate").ConfigureAwait(false);
-            return await Client.Get<MachinePolicyResource>(link).ConfigureAwait(false);
+            return await Client.Get<MachinePolicyResource>(link, token: token).ConfigureAwait(false);
         }
     }
 }

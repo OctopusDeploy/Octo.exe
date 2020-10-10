@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Repositories.Async;
@@ -16,39 +17,39 @@ namespace Octopus.Client.Editors.Async
 
         public TagSetResource Instance { get; private set; }
 
-        public async Task<TagSetEditor> CreateOrModify(string name)
+        public async Task<TagSetEditor> CreateOrModify(string name, CancellationToken token = default)
         {
-            var existing = await repository.FindByName(name).ConfigureAwait(false);
+            var existing = await repository.FindByName(name, token: token).ConfigureAwait(false);
             if (existing == null)
             {
                 Instance = await repository.Create(new TagSetResource
                 {
                     Name = name,
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
                 existing.Name = name;
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
         }
 
-        public async Task<TagSetEditor> CreateOrModify(string name, string description)
+        public async Task<TagSetEditor> CreateOrModify(string name, string description, CancellationToken token = default)
         {
-            var existing = await repository.FindByName(name).ConfigureAwait(false);
+            var existing = await repository.FindByName(name, token: token).ConfigureAwait(false);
             if (existing == null)
             {
                 Instance = await repository.Create(new TagSetResource
                 {
                     Name = name,
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
                 existing.Description = description;
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
@@ -81,9 +82,9 @@ namespace Octopus.Client.Editors.Async
             return this;
         }
 
-        public async Task<TagSetEditor> Save()
+        public async Task<TagSetEditor> Save(CancellationToken token = default)
         {
-            Instance = await repository.Modify(Instance).ConfigureAwait(false);
+            Instance = await repository.Modify(Instance, token).ConfigureAwait(false);
             return this;
         }
     }

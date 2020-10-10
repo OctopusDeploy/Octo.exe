@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model.Accounts;
 using Octopus.Client.Model.Accounts.Usages;
@@ -19,7 +20,7 @@ namespace Octopus.Client.Editors.Async
 
         public TAccountResource Instance { get; private set; }
 
-        public async Task<TAccountEditor> CreateOrModify(string name)
+        public async Task<TAccountEditor> CreateOrModify(string name, CancellationToken token = default)
         {
             var existing = await Repository.FindByName(name).ConfigureAwait(false);
             if (existing == null)
@@ -27,7 +28,7 @@ namespace Octopus.Client.Editors.Async
                 Instance = (TAccountResource)await Repository.Create(new TAccountResource
                 {
                     Name = name
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
@@ -42,9 +43,9 @@ namespace Octopus.Client.Editors.Async
             return (TAccountEditor)this;
         }
 
-        public async Task<TAccountEditor> FindByName(string name)
+        public async Task<TAccountEditor> FindByName(string name, CancellationToken token = default)
         {
-            var existing = await Repository.FindByName(name).ConfigureAwait(false);
+            var existing = await Repository.FindByName(name, token: token).ConfigureAwait(false);
             if (existing == null)
             {
                 throw new ArgumentException($"An account with the name {name} could not be found");
@@ -68,15 +69,15 @@ namespace Octopus.Client.Editors.Async
             return (TAccountEditor)this;
         }
 
-        public virtual async Task<TAccountEditor> Save()
+        public virtual async Task<TAccountEditor> Save(CancellationToken token = default)
         {
-            Instance = (TAccountResource)await Repository.Modify(Instance).ConfigureAwait(false);
+            Instance = (TAccountResource)await Repository.Modify(Instance, token).ConfigureAwait(false);
             return (TAccountEditor)this;
         }
 
-        public Task<AccountUsageResource> Usages()
+        public Task<AccountUsageResource> Usages(CancellationToken token = default)
         {
-            return Repository.Client.Get<AccountUsageResource>(Instance.Link("Usages"));
+            return Repository.Client.Get<AccountUsageResource>(Instance.Link("Usages"), token: token);
         }
     }
 }

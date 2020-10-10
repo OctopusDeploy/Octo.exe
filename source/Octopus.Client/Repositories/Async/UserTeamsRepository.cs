@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 
@@ -6,7 +7,7 @@ namespace Octopus.Client.Repositories.Async
 {
     public interface IUserTeamsRepository : ICanExtendSpaceContext<IUserTeamsRepository>
     {
-        Task<TeamNameResource[]> Get(UserResource user);
+        Task<TeamNameResource[]> Get(UserResource user, CancellationToken token = default);
     }
 
     class UserTeamsRepository : MixedScopeBaseRepository<TeamNameResource>, IUserTeamsRepository
@@ -21,10 +22,10 @@ namespace Octopus.Client.Repositories.Async
         {
         }
 
-        public async Task<TeamNameResource[]> Get(UserResource user)
+        public async Task<TeamNameResource[]> Get(UserResource user, CancellationToken token = default)
         {
             if (user == null) throw new ArgumentNullException(nameof(user));
-            return await Client.Get<TeamNameResource[]>(user.Link("Teams"), GetAdditionalQueryParameters()).ConfigureAwait(false);
+            return await Client.Get<TeamNameResource[]>(user.Link("Teams"), GetAdditionalQueryParameters(), token).ConfigureAwait(false);
         }
 
         public IUserTeamsRepository UsingContext(SpaceContext spaceContext)

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Util;
@@ -7,7 +8,7 @@ namespace Octopus.Client.Repositories.Async
 {
     public interface IRetentionPolicyRepository
     {
-        Task<TaskResource> ApplyNow(string spaceId = null);
+        Task<TaskResource> ApplyNow(string spaceId = null, CancellationToken token = default);
     }
 
     class RetentionPolicyRepository : BasicRepository<RetentionPolicyResource>, IRetentionPolicyRepository
@@ -17,11 +18,11 @@ namespace Octopus.Client.Repositories.Async
         {
         }
 
-        public Task<TaskResource> ApplyNow(string spaceId = null)
+        public Task<TaskResource> ApplyNow(string spaceId = null, CancellationToken token = default)
         {
             var tasks = new TaskRepository(Repository);
             var task = new TaskResource { Name = "Retention", Description = "Request to apply retention policies via the API", SpaceId = spaceId};
-            return tasks.Create(task);
+            return tasks.Create(task, token: token);
         }
     }
 }

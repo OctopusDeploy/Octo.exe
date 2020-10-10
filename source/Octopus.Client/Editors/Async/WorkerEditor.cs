@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Model.Endpoints;
@@ -21,9 +22,10 @@ namespace Octopus.Client.Editors.Async
         public async Task<WorkerEditor> CreateOrModify(
             string name,
             EndpointResource endpoint,
-            WorkerPoolResource[] workerpools)
+            WorkerPoolResource[] workerpools,
+            CancellationToken token = default)
         {
-            var existing = await repository.FindByName(name).ConfigureAwait(false);
+            var existing = await repository.FindByName(name, token: token).ConfigureAwait(false);
             if (existing == null)
             {
                 Instance = await repository.Create(new WorkerResource
@@ -31,7 +33,7 @@ namespace Octopus.Client.Editors.Async
                     Name = name,
                     Endpoint = endpoint,
                     WorkerPoolIds = new ReferenceCollection(workerpools.Select(e => e.Id))
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
@@ -39,7 +41,7 @@ namespace Octopus.Client.Editors.Async
                 existing.Endpoint = endpoint;
                 existing.WorkerPoolIds.ReplaceAll(workerpools.Select(e => e.Id));
 
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
@@ -51,9 +53,9 @@ namespace Octopus.Client.Editors.Async
             return this;
         }
 
-        public async Task<WorkerEditor> Save()
+        public async Task<WorkerEditor> Save(CancellationToken token = default)
         {
-            Instance = await repository.Modify(Instance).ConfigureAwait(false);
+            Instance = await repository.Modify(Instance, token).ConfigureAwait(false);
             return this;
         }
     }

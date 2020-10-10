@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Threading;
+using System.Threading.Tasks;
 using Octopus.Client.Editors.Async;
 using Octopus.Client.Model;
 
@@ -11,7 +12,7 @@ namespace Octopus.Client.Repositories.Async
         IGet<SubscriptionResource>, 
         IDelete<SubscriptionResource>
     {
-        Task<SubscriptionEditor> CreateOrModify(string name, EventNotificationSubscription eventNotificationSubscription, bool isDisabled);
+        Task<SubscriptionEditor> CreateOrModify(string name, EventNotificationSubscription eventNotificationSubscription, bool isDisabled, CancellationToken token = default);
     }
 
     class SubscriptionRepository : BasicRepository<SubscriptionResource>, ISubscriptionRepository
@@ -20,9 +21,9 @@ namespace Octopus.Client.Repositories.Async
         {
         }
 
-        public Task<SubscriptionEditor> CreateOrModify(string name, EventNotificationSubscription eventNotificationSubscription, bool isDisabled)
+        public Task<SubscriptionEditor> CreateOrModify(string name, EventNotificationSubscription eventNotificationSubscription, bool isDisabled, CancellationToken token = default)
         {
-            return new SubscriptionEditor(this).CreateOrModify(name, eventNotificationSubscription, isDisabled);
+            return new SubscriptionEditor(this).CreateOrModify(name, eventNotificationSubscription, isDisabled, token);
         }
 
     }

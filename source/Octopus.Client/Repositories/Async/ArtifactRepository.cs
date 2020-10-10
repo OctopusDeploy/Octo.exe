@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Extensibility;
 using Octopus.Client.Model;
@@ -13,9 +14,9 @@ namespace Octopus.Client.Repositories.Async
         IModify<ArtifactResource>,
         IDelete<ArtifactResource>
     {
-        Task<Stream> GetContent(ArtifactResource artifact);
-        Task PutContent(ArtifactResource artifact, Stream contentStream);
-        Task<ResourceCollection<ArtifactResource>> FindRegarding(IResource resource);
+        Task<Stream> GetContent(ArtifactResource artifact, CancellationToken token = default);
+        Task PutContent(ArtifactResource artifact, Stream contentStream, CancellationToken token = default);
+        Task<ResourceCollection<ArtifactResource>> FindRegarding(IResource resource, CancellationToken token = default);
     }
 
     class ArtifactRepository : BasicRepository<ArtifactResource>, IArtifactRepository
@@ -25,19 +26,19 @@ namespace Octopus.Client.Repositories.Async
         {
         }
 
-        public Task<Stream> GetContent(ArtifactResource artifact)
+        public Task<Stream> GetContent(ArtifactResource artifact, CancellationToken token = default)
         {
-            return Client.GetContent(artifact.Link("Content"));
+            return Client.GetContent(artifact.Link("Content"), token: token);
         }
 
-        public Task PutContent(ArtifactResource artifact, Stream contentStream)
+        public Task PutContent(ArtifactResource artifact, Stream contentStream, CancellationToken token = default)
         {
-            return Client.PutContent(artifact.Link("Content"), contentStream);
+            return Client.PutContent(artifact.Link("Content"), contentStream, token);
         }
 
-        public async Task<ResourceCollection<ArtifactResource>> FindRegarding(IResource resource)
+        public async Task<ResourceCollection<ArtifactResource>> FindRegarding(IResource resource, CancellationToken token = default)
         {
-            return await Client.List<ArtifactResource>(await Repository.Link("Artifacts").ConfigureAwait(false), new { regarding = resource.Id }).ConfigureAwait(false);
+            return await Client.List<ArtifactResource>(await Repository.Link("Artifacts").ConfigureAwait(false), new { regarding = resource.Id }, token).ConfigureAwait(false);
         }
     }
 }

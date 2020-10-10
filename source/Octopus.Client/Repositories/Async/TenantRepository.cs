@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Editors.Async;
 using Octopus.Client.Model;
@@ -9,15 +10,15 @@ namespace Octopus.Client.Repositories.Async
 {
     public interface ITenantRepository : ICreate<TenantResource>, IModify<TenantResource>, IGet<TenantResource>, IDelete<TenantResource>, IFindByName<TenantResource>, IGetAll<TenantResource>
     {
-        Task<MultiTenancyStatusResource> Status();
-        Task SetLogo(TenantResource tenant, string fileName, Stream contents);
-        Task<TenantVariableResource> GetVariables(TenantResource tenant);
-        Task<TenantVariableResource> ModifyVariables(TenantResource tenant, TenantVariableResource variables);
-        Task<List<TenantsMissingVariablesResource>> GetMissingVariables(string tenantId = null, string projectId = null, string environmentId = null);
-        Task<List<TenantResource>> FindAll(string name, string[] tags = null, int pageSize = Int32.MaxValue);
-        Task<TenantEditor> CreateOrModify(string name);
-        Task<TenantEditor> CreateOrModify(string name, string description);
-        Task<TenantEditor> CreateOrModify(string name, string description, string cloneId);
+        Task<MultiTenancyStatusResource> Status(CancellationToken token = default);
+        Task SetLogo(TenantResource tenant, string fileName, Stream contents, CancellationToken token = default);
+        Task<TenantVariableResource> GetVariables(TenantResource tenant, CancellationToken token = default);
+        Task<TenantVariableResource> ModifyVariables(TenantResource tenant, TenantVariableResource variables, CancellationToken token = default);
+        Task<List<TenantsMissingVariablesResource>> GetMissingVariables(string tenantId = null, string projectId = null, string environmentId = null, CancellationToken token = default);
+        Task<List<TenantResource>> FindAll(string name, string[] tags = null, int pageSize = Int32.MaxValue, CancellationToken token = default);
+        Task<TenantEditor> CreateOrModify(string name, CancellationToken token = default);
+        Task<TenantEditor> CreateOrModify(string name, string description, CancellationToken token = default);
+        Task<TenantEditor> CreateOrModify(string name, string description, string cloneId, CancellationToken token = default);
     }
 
     class TenantRepository : BasicRepository<TenantResource>, ITenantRepository
@@ -27,9 +28,9 @@ namespace Octopus.Client.Repositories.Async
         {
         }
 
-        public Task<TenantVariableResource> GetVariables(TenantResource tenant)
+        public Task<TenantVariableResource> GetVariables(TenantResource tenant, CancellationToken token = default)
         {
-            return Client.Get<TenantVariableResource>(tenant.Link("Variables"));
+            return Client.Get<TenantVariableResource>(tenant.Link("Variables"), token: token);
         }
 
         /// <summary>
@@ -38,50 +39,51 @@ namespace Octopus.Client.Repositories.Async
         /// <param name="name"></param>
         /// <param name="tags"></param>
         /// <param name="pageSize">Number of items per page, setting to less than the total items still retreives all items, but uses multiple requests reducing memory load on the server</param>
+        /// <param name="token">A cancellation token</param>
         /// <returns></returns>
-        public async Task<List<TenantResource>> FindAll(string name, string[] tags, int pageSize = int.MaxValue)
+        public async Task<List<TenantResource>> FindAll(string name, string[] tags, int pageSize = int.MaxValue, CancellationToken token = default)
         {
-            return await Client.Get<List<TenantResource>>(await Repository.Link("Tenants").ConfigureAwait(false), new { id = IdValueConstant.IdAll, name, tags, take = pageSize }).ConfigureAwait(false);
+            return await Client.Get<List<TenantResource>>(await Repository.Link("Tenants").ConfigureAwait(false), new { id = IdValueConstant.IdAll, name, tags, take = pageSize }, token).ConfigureAwait(false);
         }
 
-        public Task<TenantVariableResource> ModifyVariables(TenantResource tenant, TenantVariableResource variables)
+        public Task<TenantVariableResource> ModifyVariables(TenantResource tenant, TenantVariableResource variables, CancellationToken token = default)
         {
-            return Client.Post<TenantVariableResource, TenantVariableResource>(tenant.Link("Variables"), variables);
+            return Client.Post<TenantVariableResource, TenantVariableResource>(tenant.Link("Variables"), variables, token: token);
         }
 
-        public async Task<List<TenantsMissingVariablesResource>> GetMissingVariables(string tenantId = null, string projectId = null, string environmentId = null)
+        public async Task<List<TenantsMissingVariablesResource>> GetMissingVariables(string tenantId = null, string projectId = null, string environmentId = null, CancellationToken token = default)
         {
             return await Client.Get<List<TenantsMissingVariablesResource>>(await Repository.Link("TenantsMissingVariables").ConfigureAwait(false), new
             {
                 tenantId = tenantId,
                 projectId = projectId,
                 environmentId = environmentId
-            }).ConfigureAwait(false);
+            }, token).ConfigureAwait(false);
         }
 
-        public async Task<MultiTenancyStatusResource> Status()
+        public async Task<MultiTenancyStatusResource> Status(CancellationToken token = default)
         {
-            return await Client.Get<MultiTenancyStatusResource>(await Repository.Link("TenantsStatus").ConfigureAwait(false)).ConfigureAwait(false);
+            return await Client.Get<MultiTenancyStatusResource>(await Repository.Link("TenantsStatus").ConfigureAwait(false), token: token).ConfigureAwait(false);
         }
 
-        public Task SetLogo(TenantResource tenant, string fileName, Stream contents)
+        public Task SetLogo(TenantResource tenant, string fileName, Stream contents, CancellationToken token = default)
         {
-            return Client.Post(tenant.Link("Logo"), new FileUpload { Contents = contents, FileName = fileName }, false);
+            return Client.Post(tenant.Link("Logo"), new FileUpload { Contents = contents, FileName = fileName }, false, token);
         }
 
-        public Task<TenantEditor> CreateOrModify(string name)
+        public Task<TenantEditor> CreateOrModify(string name, CancellationToken token = default)
         {
-            return new TenantEditor(this).CreateOrModify(name);
+            return new TenantEditor(this).CreateOrModify(name, token);
         }
 
-        public Task<TenantEditor> CreateOrModify(string name, string description)
+        public Task<TenantEditor> CreateOrModify(string name, string description, CancellationToken token = default)
         {
-            return new TenantEditor(this).CreateOrModify(name, description);
+            return new TenantEditor(this).CreateOrModify(name, description, token: token);
         }
         
-        public Task<TenantEditor> CreateOrModify(string name, string description, string cloneId)
+        public Task<TenantEditor> CreateOrModify(string name, string description, string cloneId, CancellationToken token = default)
         {
-            return new TenantEditor(this).CreateOrModify(name, description, cloneId);
+            return new TenantEditor(this).CreateOrModify(name, description, cloneId, token);
         }
     }
 }

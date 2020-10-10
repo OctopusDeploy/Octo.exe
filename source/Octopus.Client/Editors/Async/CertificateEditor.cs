@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Repositories.Async;
@@ -16,9 +17,9 @@ namespace Octopus.Client.Editors.Async
 
         public CertificateResource Instance { get; private set; }
 
-        public async Task<CertificateEditor> Create(string name, string certificateData)
+        public async Task<CertificateEditor> Create(string name, string certificateData, CancellationToken token = default)
         {
-            var existing = repository.FindByName(name);
+            var existing = repository.FindByName(name, token: token);
             if (existing != null)
             {
                 throw new ArgumentException($"A certificate with the name {name} already exists");
@@ -29,9 +30,9 @@ namespace Octopus.Client.Editors.Async
             return this;
         }
 
-        public async Task<CertificateEditor> FindByName(string name)
+        public async Task<CertificateEditor> FindByName(string name, CancellationToken token = default)
         {
-            var existing = await repository.FindByName(name).ConfigureAwait(false);
+            var existing = await repository.FindByName(name, token: token).ConfigureAwait(false);
             if (existing == null)
             {
                 throw new ArgumentException($"A certificate with the name {name} could not be found");
@@ -50,15 +51,15 @@ namespace Octopus.Client.Editors.Async
             return this;
         }
 
-        public async Task<CertificateEditor> Save()
+        public async Task<CertificateEditor> Save(CancellationToken token = default)
         {
-            Instance = await repository.Modify(Instance).ConfigureAwait(false);
+            Instance = await repository.Modify(Instance, token).ConfigureAwait(false);
             return this;
         }
 
-        public async Task<CertificateUsageResource> Usages()
+        public async Task<CertificateUsageResource> Usages(CancellationToken token = default)
         {
-            return await repository.Client.Get<CertificateUsageResource>(Instance.Link("Usages")).ConfigureAwait(false);
+            return await repository.Client.Get<CertificateUsageResource>(Instance.Link("Usages"), token: token).ConfigureAwait(false);
         }
     }
 }

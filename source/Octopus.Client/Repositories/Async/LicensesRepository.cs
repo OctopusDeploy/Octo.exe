@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 
@@ -5,9 +6,9 @@ namespace Octopus.Client.Repositories.Async
 {
     public interface ILicensesRepository
     {
-        Task<LicenseResource> GetCurrent();
-        Task<LicenseResource> UpdateCurrent(LicenseResource resource);
-        Task<LicenseStatusResource> GetStatus();
+        Task<LicenseResource> GetCurrent(CancellationToken token = default);
+        Task<LicenseResource> UpdateCurrent(LicenseResource resource, CancellationToken token = default);
+        Task<LicenseStatusResource> GetStatus(CancellationToken token = default);
     }
     
     class LicensesRepository : BasicRepository<LicenseResource>, ILicensesRepository
@@ -17,14 +18,14 @@ namespace Octopus.Client.Repositories.Async
         {
         }
 
-        public async Task<LicenseResource> GetCurrent()
-            => await Client.Get<LicenseResource>(await Repository.Link(CollectionLinkName));
+        public async Task<LicenseResource> GetCurrent(CancellationToken token = default)
+            => await Client.Get<LicenseResource>(await Repository.Link(CollectionLinkName), token: token);
 
-        public async Task<LicenseResource> UpdateCurrent(LicenseResource resource)
-            => await Client.Update(await Repository.Link(CollectionLinkName), resource);
+        public async Task<LicenseResource> UpdateCurrent(LicenseResource resource, CancellationToken token = default)
+            => await Client.Update(await Repository.Link(CollectionLinkName), resource, token: token);
 
-        public async Task<LicenseStatusResource> GetStatus()
-            => await Client.Get<LicenseStatusResource>(await Repository.Link("CurrentLicenseStatus"));
+        public async Task<LicenseStatusResource> GetStatus(CancellationToken token = default)
+            => await Client.Get<LicenseStatusResource>(await Repository.Link("CurrentLicenseStatus"), token: token);
 
     }
 }

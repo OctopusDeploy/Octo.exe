@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Exceptions;
 using Octopus.Client.Model;
@@ -136,15 +137,16 @@ namespace Octopus.Client.Operations
         /// Executes the operation against the specified Octopus Deploy server.
         /// </summary>
         /// <param name="serverEndpoint">The Octopus Deploy server endpoint.</param>
+        /// <param name="token">A cancellation token</param>
         /// <exception cref="System.ArgumentException">
         /// </exception>
-        public async Task ExecuteAsync(OctopusServerEndpoint serverEndpoint)
+        public async Task ExecuteAsync(OctopusServerEndpoint serverEndpoint, CancellationToken token = default)
         {
             using (var client = await clientFactory.CreateAsyncClient(serverEndpoint).ConfigureAwait(false))
             {
                 var repository = new OctopusAsyncRepository(client);
 
-                await ExecuteAsync(repository).ConfigureAwait(false);
+                await ExecuteAsync(repository, token).ConfigureAwait(false);
             }
         }
 
@@ -152,40 +154,42 @@ namespace Octopus.Client.Operations
         /// Executes the operation against the specified Octopus Deploy server.
         /// </summary>
         /// <param name="repository">The Octopus Deploy server repository.</param>
+        /// <param name="token">A cancellation token</param>
         /// <exception cref="System.ArgumentException">
         /// </exception>
-        public async Task ExecuteAsync(OctopusAsyncRepository repository)
+        public async Task ExecuteAsync(OctopusAsyncRepository repository, CancellationToken token = default)
         {
-            await ExecuteAsync((IOctopusSpaceAsyncRepository) repository).ConfigureAwait(false);
+            await ExecuteAsync((IOctopusSpaceAsyncRepository) repository, token).ConfigureAwait(false);
         }
 
         /// <summary>
         /// Executes the operation against the specified Octopus Deploy server.
         /// </summary>
         /// <param name="repository">The Octopus Deploy server repository.</param>
+        /// <param name="token">A cancellation token</param>
         /// <exception cref="System.ArgumentException">
         /// </exception>
-        public abstract Task ExecuteAsync(IOctopusSpaceAsyncRepository repository);
+        public abstract Task ExecuteAsync(IOctopusSpaceAsyncRepository repository, CancellationToken token = default);
 
-        protected async Task<MachinePolicyResource> GetMachinePolicy(IOctopusSpaceAsyncRepository repository)
+        protected async Task<MachinePolicyResource> GetMachinePolicy(IOctopusSpaceAsyncRepository repository, CancellationToken token = default)
         {
 
             var machinePolicy = default(MachinePolicyResource);
             if (!string.IsNullOrEmpty(MachinePolicy))
             {
-                machinePolicy = await repository.MachinePolicies.FindByName(MachinePolicy).ConfigureAwait(false);
+                machinePolicy = await repository.MachinePolicies.FindByName(MachinePolicy, token: token).ConfigureAwait(false);
                 if (machinePolicy == null)
                     throw new ArgumentException(CouldNotFindMessage("machine policy", MachinePolicy));
             }
             return machinePolicy;
         }
 
-        protected async Task<ProxyResource> GetProxy(IOctopusSpaceAsyncRepository repository)
+        protected async Task<ProxyResource> GetProxy(IOctopusSpaceAsyncRepository repository, CancellationToken token = default)
         {
             var proxy = default(ProxyResource);
             if (!string.IsNullOrEmpty(ProxyName))
             {
-                proxy = await repository.Proxies.FindByName(ProxyName).ConfigureAwait(false);
+                proxy = await repository.Proxies.FindByName(ProxyName, token: token).ConfigureAwait(false);
                 if (proxy == null)
                     throw new ArgumentException(CouldNotFindMessage("proxy name", ProxyName));
             }

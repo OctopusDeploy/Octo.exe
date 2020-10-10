@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Editors.Async;
 using Octopus.Client.Model;
@@ -14,7 +15,8 @@ namespace Octopus.Client.Repositories.Async
             string partialName = null,
             bool? isDisabled = false,
             string healthStatuses = null,
-            string commStyles = null);
+            string commStyles = null, 
+            CancellationToken token = default);
         Task<WorkerPoolsSummaryResource> Summary(
             string ids = null,
             string partialName = null,
@@ -22,10 +24,11 @@ namespace Octopus.Client.Repositories.Async
             bool? isDisabled = false,
             string healthStatuses = null,
             string commStyles = null,
-            bool? hideEmptyPools = false);
-        Task Sort(string[] workerPoolIdsInOrder);
-        Task<WorkerPoolEditor> CreateOrModify(string name);
-        Task<WorkerPoolEditor> CreateOrModify(string name, string description);
+            bool? hideEmptyPools = false, 
+            CancellationToken token = default);
+        Task Sort(string[] workerPoolIdsInOrder, CancellationToken token = default);
+        Task<WorkerPoolEditor> CreateOrModify(string name, CancellationToken token = default);
+        Task<WorkerPoolEditor> CreateOrModify(string name, string description, CancellationToken token = default);
     }
 
     class WorkerPoolRepository : BasicRepository<WorkerPoolResource>, IWorkerPoolRepository
@@ -41,7 +44,8 @@ namespace Octopus.Client.Repositories.Async
             string partialName = null,
             bool? isDisabled = false,
             string healthStatuses = null,
-            string commStyles = null)
+            string commStyles = null,
+            CancellationToken token = default)
         {
             var resources = new List<WorkerResource>();
 
@@ -56,7 +60,7 @@ namespace Octopus.Client.Repositories.Async
             {
                 resources.AddRange(page.Items);
                 return true;
-            }).ConfigureAwait(false);
+            }, token).ConfigureAwait(false);
 
             return resources;
         }
@@ -68,7 +72,8 @@ namespace Octopus.Client.Repositories.Async
             bool? isDisabled = false,
             string healthStatuses = null,
             string commStyles = null,
-            bool? hideEmptyPools = false)
+            bool? hideEmptyPools = false,
+            CancellationToken token = default)
         {
             return await Client.Get<WorkerPoolsSummaryResource>(await Repository.Link("WorkerPoolsSummary").ConfigureAwait(false), new
             {
@@ -79,22 +84,22 @@ namespace Octopus.Client.Repositories.Async
                 healthStatuses,
                 commStyles,
                 hideEmptyPools,
-            }).ConfigureAwait(false);
+            }, token).ConfigureAwait(false);
         }
 
-        public async Task Sort(string[] workerPoolIdsInOrder)
+        public async Task Sort(string[] workerPoolIdsInOrder, CancellationToken token = default)
         {
-            await Client.Put(await Repository.Link("WorkerPoolSortOrder").ConfigureAwait(false), workerPoolIdsInOrder).ConfigureAwait(false);
+            await Client.Put(await Repository.Link("WorkerPoolSortOrder").ConfigureAwait(false), workerPoolIdsInOrder, token: token).ConfigureAwait(false);
         }
 
-        public Task<WorkerPoolEditor> CreateOrModify(string name)
+        public Task<WorkerPoolEditor> CreateOrModify(string name, CancellationToken token = default)
         {
-            return new WorkerPoolEditor(this).CreateOrModify(name);
+            return new WorkerPoolEditor(this).CreateOrModify(name, token);
         }
 
-        public Task<WorkerPoolEditor> CreateOrModify(string name, string description)
+        public Task<WorkerPoolEditor> CreateOrModify(string name, string description, CancellationToken token = default)
         {
-            return new WorkerPoolEditor(this).CreateOrModify(name, description);
+            return new WorkerPoolEditor(this).CreateOrModify(name, description, token);
         }
     }
 }

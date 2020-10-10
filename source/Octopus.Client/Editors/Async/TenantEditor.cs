@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Exceptions;
 using Octopus.Client.Model;
@@ -22,26 +23,26 @@ namespace Octopus.Client.Editors.Async
 
         public Task<TenantVariablesEditor> Variables => variables.Value;
 
-        public async Task<TenantEditor> CreateOrModify(string name)
+        public async Task<TenantEditor> CreateOrModify(string name, CancellationToken token = default)
         {
-            var existing = await repository.FindByName(name).ConfigureAwait(false);
+            var existing = await repository.FindByName(name, token: token).ConfigureAwait(false);
             if (existing == null)
             {
                 Instance = await repository.Create(new TenantResource
                 {
                     Name = name,
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
                 existing.Name = name;
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
         }
         
-        public async Task<TenantEditor> CreateOrModify(string name, string description, string cloneId = null)
+        public async Task<TenantEditor> CreateOrModify(string name, string description, string cloneId = null, CancellationToken token = default)
         {
             var baseRepository = ((TenantRepository) repository).Repository;
             if (!await baseRepository.HasLinkParameter("Tenants", "clone"))
@@ -49,31 +50,31 @@ namespace Octopus.Client.Editors.Async
                     ? "Tenant Descriptions requires Octopus version 2019.8.0 or newer."
                     : "Cloning Tenants requires Octopus version 2019.8.0 or newer.", "2019.8.0");
 
-            var existing = await repository.FindByName(name).ConfigureAwait(false);
+            var existing = await repository.FindByName(name, token: token).ConfigureAwait(false);
             if (existing == null)
             {
                 Instance = await repository.Create(new TenantResource
                     {
                         Name = name,
                         Description = description,
-                    }, new { clone = cloneId }
+                    }, new { clone = cloneId }, token
                 ).ConfigureAwait(false);
             }
             else
             {
                 existing.Name = name;
                 existing.Description = description;
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
         }
 
-        public async Task<TenantEditor> SetLogo(string logoFilePath)
+        public async Task<TenantEditor> SetLogo(string logoFilePath, CancellationToken token = default)
         {
             using (var stream = new FileStream(logoFilePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                await repository.SetLogo(Instance, Path.GetFileName(logoFilePath), stream).ConfigureAwait(false);
+                await repository.SetLogo(Instance, Path.GetFileName(logoFilePath), stream, token).ConfigureAwait(false);
             }
 
             return this;
@@ -109,13 +110,13 @@ namespace Octopus.Client.Editors.Async
             return this;
         }
 
-        public async Task<TenantEditor> Save()
+        public async Task<TenantEditor> Save(CancellationToken token = default)
         {
-            Instance = await repository.Modify(Instance).ConfigureAwait(false);
+            Instance = await repository.Modify(Instance, token).ConfigureAwait(false);
             if (variables.IsValueCreated)
             {
                 var vars = await variables.Value.ConfigureAwait(false);
-                await vars.Save().ConfigureAwait(false);
+                await vars.Save(token).ConfigureAwait(false);
             }
             return this;
         }

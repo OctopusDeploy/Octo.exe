@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 
@@ -5,7 +6,7 @@ namespace Octopus.Client.Repositories.Async
 {
     public interface IUpgradeConfigurationRepository : IGet<UpgradeConfigurationResource>, IModify<UpgradeConfigurationResource>
     {
-        Task<UpgradeConfigurationResource> Get();
+        Task<UpgradeConfigurationResource> Get(CancellationToken token = default);
     }
     class UpgradeConfigurationRepository : BasicRepository<UpgradeConfigurationResource>, IUpgradeConfigurationRepository
     {
@@ -13,10 +14,10 @@ namespace Octopus.Client.Repositories.Async
         {
         }
 
-        public async Task<UpgradeConfigurationResource> Get()
+        public async Task<UpgradeConfigurationResource> Get(CancellationToken token = default)
         {
             var link = await ResolveLink();
-            var upgradeConfiguration = await Client.Get<UpgradeConfigurationResource>(link);
+            var upgradeConfiguration = await Client.Get<UpgradeConfigurationResource>(link, token: token);
             return upgradeConfiguration;
         }
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 
@@ -12,22 +13,22 @@ namespace Octopus.Client.Repositories.Async
         IDelete<UserResource>,
         ICreate<UserResource>
     {
-        Task<UserResource> FindByUsername(string username);
-        Task<UserResource> Create(string username, string displayName, string password = null, string emailAddress = null);
-        Task<UserResource> CreateServiceAccount(string username, string displayName);
-        Task<UserResource> Register(RegisterCommand registerCommand);
-        Task SignIn(LoginCommand loginCommand);
-        Task SignIn(string username, string password, bool rememberMe = false);
-        Task SignOut();
-        Task<UserResource> GetCurrent();
-        Task<SpaceResource[]> GetSpaces(UserResource user);
-        Task<ApiKeyResource> CreateApiKey(UserResource user, string purpose = null);
-        Task<List<ApiKeyResource>> GetApiKeys(UserResource user);
-        Task RevokeApiKey(ApiKeyResource apiKey);
+        Task<UserResource> FindByUsername(string username, CancellationToken token = default);
+        Task<UserResource> Create(string username, string displayName, string password = null, string emailAddress = null, CancellationToken token = default);
+        Task<UserResource> CreateServiceAccount(string username, string displayName, CancellationToken token = default);
+        Task<UserResource> Register(RegisterCommand registerCommand, CancellationToken token = default);
+        Task SignIn(LoginCommand loginCommand, CancellationToken token = default);
+        Task SignIn(string username, string password, bool rememberMe = false, CancellationToken token = default);
+        Task SignOut(CancellationToken token = default);
+        Task<UserResource> GetCurrent(CancellationToken token = default);
+        Task<SpaceResource[]> GetSpaces(UserResource user, CancellationToken token = default);
+        Task<ApiKeyResource> CreateApiKey(UserResource user, string purpose = null, CancellationToken token = default);
+        Task<List<ApiKeyResource>> GetApiKeys(UserResource user, CancellationToken token = default);
+        Task RevokeApiKey(ApiKeyResource apiKey, CancellationToken token = default);
         [Obsolete("Use the " + nameof(IUserInvitesRepository) + " instead", false)]
-        Task<InvitationResource> Invite(string addToTeamId);
+        Task<InvitationResource> Invite(string addToTeamId, CancellationToken token = default);
         [Obsolete("Use the " + nameof(IUserInvitesRepository) + " instead", false)]
-        Task<InvitationResource> Invite(ReferenceCollection addToTeamIds);
+        Task<InvitationResource> Invite(ReferenceCollection addToTeamIds, CancellationToken token = default);
     }
 
     class UserRepository : BasicRepository<UserResource>, IUserRepository
@@ -40,10 +41,10 @@ namespace Octopus.Client.Repositories.Async
             invitations = new LegacyInvitationRepository(Repository);
         }
 
-        public Task<UserResource> FindByUsername(string username) 
-            => FindOne(u => u.Username.Equals(username, StringComparison.CurrentCultureIgnoreCase), pathParameters: new {filter = username});
+        public Task<UserResource> FindByUsername(string username, CancellationToken token = default) 
+            => FindOne(u => u.Username.Equals(username, StringComparison.CurrentCultureIgnoreCase), pathParameters: new {filter = username}, token: token);
 
-        public Task<UserResource> Create(string username, string displayName, string password = null, string emailAddress = null)
+        public Task<UserResource> Create(string username, string displayName, string password = null, string emailAddress = null, CancellationToken token = default)
         {
             return Create(new UserResource
             {
@@ -56,7 +57,7 @@ namespace Octopus.Client.Repositories.Async
             });
         }
 
-        public Task<UserResource> CreateServiceAccount(string username, string displayName)
+        public Task<UserResource> CreateServiceAccount(string username, string displayName, CancellationToken token = default)
         {
             return Create(new UserResource
             {
@@ -64,50 +65,50 @@ namespace Octopus.Client.Repositories.Async
                 DisplayName = displayName,
                 IsActive = true,
                 IsService = true
-            });
+            }, token: token);
         }
 
-        public async Task<UserResource> Register(RegisterCommand registerCommand)
+        public async Task<UserResource> Register(RegisterCommand registerCommand, CancellationToken token = default)
         {
-            return await Client.Post<UserResource,UserResource>(await Repository.Link("Register").ConfigureAwait(false), registerCommand).ConfigureAwait(false);
+            return await Client.Post<UserResource,UserResource>(await Repository.Link("Register").ConfigureAwait(false), registerCommand, token: token).ConfigureAwait(false);
         }
 
-        public async Task SignIn(LoginCommand loginCommand)
+        public async Task SignIn(LoginCommand loginCommand, CancellationToken token = default)
         {
-            await Client.SignIn(loginCommand).ConfigureAwait(false);
+            await Client.SignIn(loginCommand, token).ConfigureAwait(false);
         }
 
-        public Task SignIn(string username, string password, bool rememberMe = false)
+        public Task SignIn(string username, string password, bool rememberMe = false, CancellationToken token = default)
         {
-            return SignIn(new LoginCommand() {Username = username, Password = password, RememberMe = rememberMe});
+            return SignIn(new LoginCommand() {Username = username, Password = password, RememberMe = rememberMe}, token);
         }
 
-        public Task SignOut()
+        public Task SignOut(CancellationToken token = default)
         {
-            return Client.SignOut();
+            return Client.SignOut(token);
         }
 
-        public async Task<UserResource> GetCurrent()
+        public async Task<UserResource> GetCurrent(CancellationToken token = default)
         {
-            return await Client.Get<UserResource>(await Repository.Link("CurrentUser").ConfigureAwait(false)).ConfigureAwait(false);
+            return await Client.Get<UserResource>(await Repository.Link("CurrentUser").ConfigureAwait(false), token: token).ConfigureAwait(false);
         }
 
-        public Task<SpaceResource[]> GetSpaces(UserResource user)
+        public Task<SpaceResource[]> GetSpaces(UserResource user, CancellationToken token = default)
         {
             if (user == null) throw new ArgumentNullException("user");
-            return Client.Get<SpaceResource[]>(user.Link("Spaces"));
+            return Client.Get<SpaceResource[]>(user.Link("Spaces"), token: token);
         }
 
-        public Task<ApiKeyResource> CreateApiKey(UserResource user, string purpose = null)
+        public Task<ApiKeyResource> CreateApiKey(UserResource user, string purpose = null, CancellationToken token = default)
         {
             if (user == null) throw new ArgumentNullException("user");
             return Client.Post<object, ApiKeyResource>(user.Link("ApiKeys"), new
             {
                 Purpose = purpose ?? "Requested by Octopus.Client"
-            });
+            }, token: token);
         }
 
-        public async Task<List<ApiKeyResource>> GetApiKeys(UserResource user)
+        public async Task<List<ApiKeyResource>> GetApiKeys(UserResource user, CancellationToken token = default)
         {
             if (user == null) throw new ArgumentNullException("user");
             var resources = new List<ApiKeyResource>();
@@ -116,27 +117,27 @@ namespace Octopus.Client.Repositories.Async
             {
                 resources.AddRange(page.Items);
                 return true;
-            }).ConfigureAwait(false);
+            }, token).ConfigureAwait(false);
 
             return resources;
         }
 
-        public Task RevokeApiKey(ApiKeyResource apiKey)
+        public Task RevokeApiKey(ApiKeyResource apiKey, CancellationToken token = default)
         {
-            return Client.Delete(apiKey.Link("Self"));
+            return Client.Delete(apiKey.Link("Self"), token: token);
         }
 
         [Obsolete("Use the " + nameof(IUserInvitesRepository) + " instead", false)]
-        public Task<InvitationResource> Invite(string addToTeamId)
+        public Task<InvitationResource> Invite(string addToTeamId, CancellationToken token = default)
         {
             if (addToTeamId == null) throw new ArgumentNullException("addToTeamId");
-            return Invite(new ReferenceCollection { addToTeamId });
+            return Invite(new ReferenceCollection { addToTeamId }, token);
         }
 
         [Obsolete("Use the " + nameof(IUserInvitesRepository) + " instead", false)]
-        public Task<InvitationResource> Invite(ReferenceCollection addToTeamIds)
+        public Task<InvitationResource> Invite(ReferenceCollection addToTeamIds, CancellationToken token = default)
         {
-            return invitations.Create(new InvitationResource { AddToTeamIds = addToTeamIds ?? new ReferenceCollection() });
+            return invitations.Create(new InvitationResource { AddToTeamIds = addToTeamIds ?? new ReferenceCollection() }, token: token);
         }
     }
 }

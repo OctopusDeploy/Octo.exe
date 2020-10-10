@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Repositories.Async;
@@ -16,29 +17,29 @@ namespace Octopus.Client.Editors.Async
 
         public EnvironmentResource Instance { get; private set; }
 
-        public async Task<EnvironmentEditor> CreateOrModify(string name)
+        public async Task<EnvironmentEditor> CreateOrModify(string name, CancellationToken token = default)
         {
-            var existing = await repository.FindByName(name).ConfigureAwait(false);
+            var existing = await repository.FindByName(name, token: token).ConfigureAwait(false);
             if (existing == null)
             {
                 Instance = await repository.Create(new EnvironmentResource
                 {
                     Name = name,
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
                 existing.Name = name;
 
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
         }
 
-        public async Task<EnvironmentEditor> CreateOrModify(string name, string description, bool allowDynamicInfrastructure = false)
+        public async Task<EnvironmentEditor> CreateOrModify(string name, string description, bool allowDynamicInfrastructure = false, CancellationToken token = default)
         {
-            var existing = await repository.FindByName(name).ConfigureAwait(false);
+            var existing = await repository.FindByName(name, token: token).ConfigureAwait(false);
             if (existing == null)
             {
                 Instance = await repository.Create(new EnvironmentResource
@@ -46,7 +47,7 @@ namespace Octopus.Client.Editors.Async
                     Name = name,
                     Description = description,
                     AllowDynamicInfrastructure = allowDynamicInfrastructure
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
@@ -54,13 +55,13 @@ namespace Octopus.Client.Editors.Async
                 existing.Description = description;
                 existing.AllowDynamicInfrastructure = allowDynamicInfrastructure;
 
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
         }
 
-        public async Task<EnvironmentEditor> CreateOrModify(string name, string description)
+        public async Task<EnvironmentEditor> CreateOrModify(string name, string description, CancellationToken token = default)
         {
             var existing = await repository.FindByName(name).ConfigureAwait(false);
             if (existing == null)
@@ -69,14 +70,14 @@ namespace Octopus.Client.Editors.Async
                 {
                     Name = name,
                     Description = description,
-                }).ConfigureAwait(false);
+                }, token: token).ConfigureAwait(false);
             }
             else
             {
                 existing.Name = name;
                 existing.Description = description;
 
-                Instance = await repository.Modify(existing).ConfigureAwait(false);
+                Instance = await repository.Modify(existing, token).ConfigureAwait(false);
             }
 
             return this;
@@ -88,9 +89,9 @@ namespace Octopus.Client.Editors.Async
             return this;
         }
 
-        public async Task<EnvironmentEditor> Save()
+        public async Task<EnvironmentEditor> Save(CancellationToken token = default)
         {
-            Instance = await repository.Modify(Instance).ConfigureAwait(false);
+            Instance = await repository.Modify(Instance, token).ConfigureAwait(false);
             return this;
         }
     }

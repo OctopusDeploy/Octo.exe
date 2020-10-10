@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Model;
 using Octopus.Client.Util;
@@ -13,7 +14,8 @@ namespace Octopus.Client.Repositories.Async
         Task<ResourceCollection<EventResource>> List(int skip = 0, 
             string filterByUserId = null,
             string regardingDocumentId = null,
-            bool includeInternalEvents = false);
+            bool includeInternalEvents = false,
+            CancellationToken token = default);
 
         /// <summary>
         /// 
@@ -38,6 +40,7 @@ namespace Octopus.Client.Repositories.Async
         /// <param name="documentTypes"></param>
         /// <param name="eventAgents"></param>
         /// <param name="projectGroups"></param>
+        /// <param name="token">A cancellation token</param>
         /// <returns></returns>
         Task<ResourceCollection<EventResource>> List(int skip = 0,
             int? take = null,
@@ -58,12 +61,13 @@ namespace Octopus.Client.Repositories.Async
             long? toAutoId = null,
             string documentTypes = null,
             string eventAgents = null,
-            string projectGroups = null);
+            string projectGroups = null, 
+            CancellationToken token = default);
 
-        Task<IReadOnlyList<DocumentTypeResource>> GetDocumentTypes();
-        Task<IReadOnlyList<EventAgentResource>> GetAgents();
-        Task<IReadOnlyList<EventCategoryResource>> GetCategories();
-        Task<IReadOnlyList<EventGroupResource>> GetGroups();
+        Task<IReadOnlyList<DocumentTypeResource>> GetDocumentTypes(CancellationToken token = default);
+        Task<IReadOnlyList<EventAgentResource>> GetAgents(CancellationToken token = default);
+        Task<IReadOnlyList<EventCategoryResource>> GetCategories(CancellationToken token = default);
+        Task<IReadOnlyList<EventGroupResource>> GetGroups(CancellationToken token = default);
     }
 
     class EventRepository : MixedScopeBaseRepository<EventResource>, IEventRepository
@@ -82,7 +86,8 @@ namespace Octopus.Client.Repositories.Async
         public async Task<ResourceCollection<EventResource>> List(int skip = 0, 
                 string filterByUserId = null,
                 string regardingDocumentId = null,
-                bool includeInternalEvents = false)
+                bool includeInternalEvents = false,
+                CancellationToken token = default)
         {
             return await Client.List<EventResource>(await Repository.Link("Events").ConfigureAwait(false), ParameterHelper.CombineParameters(GetAdditionalQueryParameters(), new
             {
@@ -90,7 +95,7 @@ namespace Octopus.Client.Repositories.Async
                 user = filterByUserId,
                 regarding = regardingDocumentId,
                 @internal = includeInternalEvents.ToString()
-            })).ConfigureAwait(false);
+            }), token).ConfigureAwait(false);
         }
 
         public async Task<ResourceCollection<EventResource>> List(int skip = 0, 
@@ -112,7 +117,8 @@ namespace Octopus.Client.Repositories.Async
             long? toAutoId = null,
             string documentTypes = null,
             string eventAgents = null,
-            string projectGroups = null)
+            string projectGroups = null,
+            CancellationToken token = default)
         {
             var parameters = ParameterHelper.CombineParameters(GetAdditionalQueryParameters(), new
             {
@@ -138,31 +144,31 @@ namespace Octopus.Client.Repositories.Async
                 projectGroups,
             });
 
-            return await Client.List<EventResource>(await Repository.Link("Events").ConfigureAwait(false), parameters).ConfigureAwait(false);
+            return await Client.List<EventResource>(await Repository.Link("Events").ConfigureAwait(false), parameters, token).ConfigureAwait(false);
         }
 
-        public async Task<IReadOnlyList<DocumentTypeResource>> GetDocumentTypes()
+        public async Task<IReadOnlyList<DocumentTypeResource>> GetDocumentTypes(CancellationToken token = default)
         {
             var link = await Repository.Link("EventDocumentTypes").ConfigureAwait(false);
-            return await Client.Get<List<DocumentTypeResource>>(link).ConfigureAwait(false);
+            return await Client.Get<List<DocumentTypeResource>>(link, token: token).ConfigureAwait(false);
         }
         
-        public async Task<IReadOnlyList<EventAgentResource>> GetAgents()
+        public async Task<IReadOnlyList<EventAgentResource>> GetAgents(CancellationToken token = default)
         {
             var link = await Repository.Link("EventAgents").ConfigureAwait(false);
-            return await Client.Get<List<EventAgentResource>>(link).ConfigureAwait(false);
+            return await Client.Get<List<EventAgentResource>>(link, token: token).ConfigureAwait(false);
         }
         
-        public async Task<IReadOnlyList<EventCategoryResource>> GetCategories()        
+        public async Task<IReadOnlyList<EventCategoryResource>> GetCategories(CancellationToken token = default)        
         {
             var link = await Repository.Link("EventCategories").ConfigureAwait(false);
-            return await Client.Get<List<EventCategoryResource>>(link).ConfigureAwait(false);
+            return await Client.Get<List<EventCategoryResource>>(link, token: token).ConfigureAwait(false);
         }
         
-        public async Task<IReadOnlyList<EventGroupResource>> GetGroups()
+        public async Task<IReadOnlyList<EventGroupResource>> GetGroups(CancellationToken token = default)
         {
             var link = await Repository.Link("EventGroups").ConfigureAwait(false);
-            return await Client.Get<List<EventGroupResource>>(link).ConfigureAwait(false);
+            return await Client.Get<List<EventGroupResource>>(link, token: token).ConfigureAwait(false);
         }
 
         public IEventRepository UsingContext(SpaceContext spaceContext)
