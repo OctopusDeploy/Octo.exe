@@ -11,6 +11,7 @@
 
 This package contains the client library for the HTTP API in Octopus.</Description>
     <NuspecFile>Octopus.Client.nuspec</NuspecFile>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="!$([MSBuild]::IsOSUnixLike())">
     <TargetFrameworks>net452;netstandard2.0</TargetFrameworks>

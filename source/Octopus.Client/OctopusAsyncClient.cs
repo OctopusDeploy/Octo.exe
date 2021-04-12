@@ -526,9 +526,9 @@ Certificate thumbprint:   {certificate.Thumbprint}";
                     }
                 }
 
-                SendingOctopusRequest?.Invoke(request);
+                OnSendingOctopusRequest(request);
 
-                BeforeSendingHttpRequest?.Invoke(message);
+                OnBeforeSendingHttpRequest(message);
 
                 if (request.RequestResource != null)
                     message.Content = GetContent(request);
@@ -542,7 +542,7 @@ Certificate thumbprint:   {certificate.Thumbprint}";
                 {
                     using (var response = await client.SendAsync(message, completionOption).ConfigureAwait(false))
                     {
-                        AfterReceivedHttpResponse?.Invoke(response);
+                        OnAfterReceivedHttpResponse(response);
 
                         if (!response.IsSuccessStatusCode)
                             throw await OctopusExceptionFactory.CreateException(response).ConfigureAwait(false);
@@ -554,7 +554,7 @@ Certificate thumbprint:   {certificate.Thumbprint}";
                         var locationHeader = response.Headers.Location?.OriginalString;
                         var octopusResponse = new OctopusResponse<TResponseResource>(request, response.StatusCode,
                             locationHeader, resource);
-                        ReceivedOctopusResponse?.Invoke(octopusResponse);
+                        OnReceivedOctopusResponse(octopusResponse);
 
                         return octopusResponse;
                     }
@@ -565,6 +565,14 @@ Certificate thumbprint:   {certificate.Thumbprint}";
                 }
             }
         }
+
+        protected virtual void OnSendingOctopusRequest(OctopusRequest request) => SendingOctopusRequest?.Invoke(request);
+
+        protected virtual void OnBeforeSendingHttpRequest(HttpRequestMessage request) => BeforeSendingHttpRequest?.Invoke(request);
+
+        protected virtual void OnAfterReceivedHttpResponse(HttpResponseMessage response) => AfterReceivedHttpResponse?.Invoke(response);
+
+        protected virtual void OnReceivedOctopusResponse(OctopusResponse response) => ReceivedOctopusResponse?.Invoke(response);
 
         private HttpContent GetContent(OctopusRequest request)
         {
