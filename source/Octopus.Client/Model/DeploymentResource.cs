@@ -65,6 +65,7 @@ namespace Octopus.Client.Model
         [WriteableOnCreate]
         public bool UseGuidedFailure { get; set; }
 
+        [Obsolete("Deployment comments were made obsolete by prompted variables. This property is no longer used.")]
         [WriteableOnCreate]
         public string Comments { get; set; }
 
