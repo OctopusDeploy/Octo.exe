@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -130,6 +129,9 @@ namespace Octopus.Client.Repositories.Async
         Task<ResourceCollection<VersionControlBranchResource>> GetVersionControlledBranches(ProjectResource projectResource);
         Task<VersionControlBranchResource> GetVersionControlledBranch(ProjectResource projectResource, string branch);
         Task<ConvertProjectToVersionControlledResponse> ConvertToVersionControlled(ProjectResource project, VersionControlSettingsResource versionControlSettings, string commitMessage);
+        Task<DeploymentProcessResource> GetDeploymentProcess(ProjectResource project);
+        Task<DeploymentProcessResource> UpdateDeploymentProcess(ProjectResource projectResource,
+            DeploymentProcessResource deploymentProcessResource, string commitMessage);
     }
 
     class ProjectBetaRepository : IProjectBetaRepository
@@ -162,6 +164,25 @@ namespace Octopus.Client.Repositories.Async
 
             var url = project.Link("ConvertToVcs");
             var response = await client.Post<ConvertProjectToVersionControlledCommand,ConvertProjectToVersionControlledResponse>(url, payload);
+            return response;
+        }
+
+        public Task<DeploymentProcessResource> GetDeploymentProcess(ProjectResource projectResource)
+        {
+            return client.Get<DeploymentProcessResource>(projectResource.Link("DeploymentProcess"));
+        }
+
+        public async Task<DeploymentProcessResource> UpdateDeploymentProcess(ProjectResource projectResource, DeploymentProcessResource deploymentProcessResource,
+            string commitMessage)
+        {
+            var payload = new UpdateVersionControlledDeploymentProcessCommand
+            {
+                Resource = deploymentProcessResource,
+                CommitMessage = commitMessage
+            };
+
+            var url = projectResource.Link("DeploymentProcess");
+            var response = await client.Post<UpdateVersionControlledDeploymentProcessCommand, DeploymentProcessResource>(url, payload);
             return response;
         }
     }

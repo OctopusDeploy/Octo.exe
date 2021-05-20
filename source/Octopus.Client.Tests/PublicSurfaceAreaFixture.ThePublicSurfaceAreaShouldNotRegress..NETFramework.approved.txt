@@ -6518,6 +6518,12 @@ Octopus.Client.Model.VersionControl
   {
     .ctor()
   }
+  class UpdateVersionControlledDeploymentProcessCommand
+  {
+    .ctor()
+    String CommitMessage { get; set; }
+    Octopus.Client.Model.DeploymentProcessResource Resource { get; set; }
+  }
   class VersionControlReferenceResource
   {
     .ctor()
@@ -7813,8 +7819,10 @@ Octopus.Client.Repositories.Async
   interface IProjectBetaRepository
   {
     Task<ConvertProjectToVersionControlledResponse> ConvertToVersionControlled(Octopus.Client.Model.ProjectResource, Octopus.Client.Model.VersionControlSettingsResource, String)
+    Task<DeploymentProcessResource> GetDeploymentProcess(Octopus.Client.Model.ProjectResource)
     Task<VersionControlBranchResource> GetVersionControlledBranch(Octopus.Client.Model.ProjectResource, String)
     Task<ResourceCollection<VersionControlBranchResource>> GetVersionControlledBranches(Octopus.Client.Model.ProjectResource)
+    Task<DeploymentProcessResource> UpdateDeploymentProcess(Octopus.Client.Model.ProjectResource, Octopus.Client.Model.DeploymentProcessResource, String)
   }
   interface IProjectGroupRepository
     Octopus.Client.Repositories.Async.IFindByName<ProjectGroupResource>
