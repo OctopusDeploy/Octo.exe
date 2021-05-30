@@ -40,7 +40,18 @@ namespace Octopus.Client.Model
         [Required]
         public long HttpStrictTransportSecurityMaxAge { get; set; }
 
+        [Writeable]
+        [Required]
+        public SameSiteMode CookieSameSiteMode { get; set; }
+
         public XOptionsResource XOptions { get; set; } = new XOptionsResource();
+    }
+
+    public enum SameSiteMode
+    {
+        Lax,
+        Strict,
+        None,
     }
 
     public class XOptionsResource
@@ -51,7 +62,7 @@ namespace Octopus.Client.Model
 
         [Writeable]
         public string XFrameOptionAllowFrom { get; set; }
-        
+
         [Writeable]
         public string XFrameOptions { get; set; }
     }

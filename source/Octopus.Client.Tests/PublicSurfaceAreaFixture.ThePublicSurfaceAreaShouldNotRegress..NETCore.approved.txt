@@ -4502,6 +4502,12 @@ Octopus.Client.Model
     String NextNameIncrement { get; set; }
     String RunbookProcessId { get; set; }
   }
+  SameSiteMode
+  {
+      Lax = 0
+      Strict = 1
+      None = 2
+  }
   class ScheduledTaskDetailsResource
     Octopus.Client.Extensibility.IResource
     Octopus.Client.Model.IAuditedResource
@@ -5405,6 +5411,7 @@ Octopus.Client.Model
   {
     .ctor()
     Boolean ContentSecurityPolicyEnabled { get; set; }
+    Octopus.Client.Model.SameSiteMode CookieSameSiteMode { get; set; }
     String CorsWhitelist { get; set; }
     Boolean HttpStrictTransportSecurityEnabled { get; set; }
     Int64 HttpStrictTransportSecurityMaxAge { get; set; }
