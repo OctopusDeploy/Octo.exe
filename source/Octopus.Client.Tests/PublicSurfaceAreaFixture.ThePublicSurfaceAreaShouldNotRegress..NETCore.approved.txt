@@ -24,9 +24,13 @@ Octopus.Client
     IDisposable
   {
     event Action<HttpResponseMessage> AfterReceivedHttpResponse
+    event Func<HttpResponseMessage, CancellationToken, Task> AfterReceivedHttpResponseAsync
     event Action<HttpRequestMessage> BeforeSendingHttpRequest
+    event Func<HttpRequestMessage, CancellationToken, Task> BeforeSendingHttpRequestAsync
     event Action<OctopusResponse> ReceivedOctopusResponse
+    event Func<OctopusResponse, CancellationToken, Task> ReceivedOctopusResponseAsync
     event Action<OctopusRequest> SendingOctopusRequest
+    event Func<OctopusRequest, CancellationToken, Task> SendingOctopusRequestAsync
     Boolean IsUsingSecureConnection { get; }
     Octopus.Client.IOctopusAsyncRepository Repository { get; }
     Octopus.Client.Model.RootResource RootDocument { get; }
@@ -264,9 +268,13 @@ Octopus.Client
     IDisposable
   {
     event Action<HttpResponseMessage> AfterReceivedHttpResponse
+    event Func<HttpResponseMessage, CancellationToken, Task> AfterReceivedHttpResponseAsync
     event Action<HttpRequestMessage> BeforeSendingHttpRequest
+    event Func<HttpRequestMessage, CancellationToken, Task> BeforeSendingHttpRequestAsync
     event Action<OctopusResponse> ReceivedOctopusResponse
+    event Func<OctopusResponse, CancellationToken, Task> ReceivedOctopusResponseAsync
     event Action<OctopusRequest> SendingOctopusRequest
+    event Func<OctopusRequest, CancellationToken, Task> SendingOctopusRequestAsync
     Boolean IsUsingSecureConnection { get; }
     Octopus.Client.IOctopusAsyncRepository Repository { get; }
     Octopus.Client.Model.RootResource RootDocument { get; }
