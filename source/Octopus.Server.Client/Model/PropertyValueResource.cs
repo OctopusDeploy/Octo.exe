@@ -8,6 +8,7 @@ namespace Octopus.Client.Model
     /// <summary>
     /// Property-values can be sensitive or non-sensitive.
     /// </summary>
+    [JsonConverter(typeof(PropertyValueJsonConverter))]
     public class PropertyValueResource
     {
         public PropertyValueResource(string value)
