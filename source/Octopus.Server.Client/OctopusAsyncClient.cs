@@ -12,6 +12,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Logging;
 using Octopus.Client.Util;
@@ -33,12 +34,13 @@ namespace Octopus.Client
         private readonly Uri cookieOriginUri;
         private readonly bool ignoreSslErrors = false;
         private bool ignoreSslErrorMessageLogged = false;
-        private string antiforgeryCookieName = null;
+        private string antiForgeryCookieName = null;
+        private OctopusClientOptions clientOptions;
 
         // Use the Create method to instantiate
         protected OctopusAsyncClient(OctopusServerEndpoint serverEndpoint, OctopusClientOptions options, bool addCertificateCallback, string requestingTool)
         {
-            var clientOptions = options ?? new OctopusClientOptions();
+            clientOptions = options ?? new OctopusClientOptions();
             this.serverEndpoint = serverEndpoint;
             cookieOriginUri = BuildCookieUri(serverEndpoint);
             var handler = new HttpClientHandler
@@ -178,7 +180,7 @@ Certificate thumbprint:   {certificate.Thumbprint}";
             await Post(await Repository.Link("SignIn").ConfigureAwait(false), loginCommand).ConfigureAwait(false);
 
             // Capture the cookie name here so that the Dispatch method does not rely on the rootDocument to get the InstallationId
-            antiforgeryCookieName = cookieContainer.GetCookies(cookieOriginUri)
+            antiForgeryCookieName = cookieContainer.GetCookies(cookieOriginUri)
                 .Cast<Cookie>()
                 .Single(c => c.Name.StartsWith(ApiConstants.AntiforgeryTokenCookiePrefix)).Name;
 
@@ -188,7 +190,7 @@ Certificate thumbprint:   {certificate.Thumbprint}";
         public async Task SignOut()
         {
             await Post(await Repository.Link("SignOut").ConfigureAwait(false)).ConfigureAwait(false);
-            antiforgeryCookieName = null;
+            antiForgeryCookieName = null;
         }
 
         /// <summary>
@@ -197,9 +199,19 @@ Certificate thumbprint:   {certificate.Thumbprint}";
         public event Action<HttpRequestMessage> BeforeSendingHttpRequest;
 
         /// <summary>
+        /// Occurs when a request is about to be sent.
+        /// </summary>
+        public event Func<HttpRequestMessage, CancellationToken, Task> BeforeSendingHttpRequestAsync;
+
+        /// <summary>
         /// Occurs when a response has been received.
         /// </summary>
         public event Action<HttpResponseMessage> AfterReceivedHttpResponse;
+
+        /// <summary>
+        /// Occurs when a response has been received.
+        /// </summary>
+        public event Func<HttpResponseMessage, CancellationToken, Task> AfterReceivedHttpResponseAsync;
 
         /// <summary>
         /// Gets a document that identifies the Octopus Server (from /api) and provides links to the resources available on the
@@ -216,9 +228,19 @@ Certificate thumbprint:   {certificate.Thumbprint}";
         public event Action<OctopusRequest> SendingOctopusRequest;
 
         /// <summary>
+        /// Occurs when a request is about to be sent.
+        /// </summary>
+        public event Func<OctopusRequest, CancellationToken, Task> SendingOctopusRequestAsync;
+
+        /// <summary>
         /// Occurs when a response is received from the Octopus Server.
         /// </summary>
         public event Action<OctopusResponse> ReceivedOctopusResponse;
+
+        /// <summary>
+        /// Occurs when a response is received from the Octopus Server.
+        /// </summary>
+        public event Func<OctopusResponse, CancellationToken, Task> ReceivedOctopusResponseAsync;
 
         /// <summary>
         /// Fetches a single resource from the server using the HTTP GET verb.
@@ -510,65 +532,71 @@ Certificate thumbprint:   {certificate.Thumbprint}";
 
         protected virtual async Task<OctopusResponse<TResponseResource>> DispatchRequest<TResponseResource>(OctopusRequest request, bool readResponse)
         {
-            using (var message = new HttpRequestMessage())
+            using var cancellationTokenSource = new CancellationTokenSource(clientOptions.Timeout);
+            var cancellationToken = cancellationTokenSource.Token;
+
+            using var message = new HttpRequestMessage
             {
-                message.RequestUri = request.Uri;
-                message.Method = new HttpMethod(request.Method);
+                RequestUri = request.Uri, 
+                Method = new HttpMethod(request.Method)
+            };
 
-                if (request.Method == "PUT" || request.Method == "DELETE")
+            if (request.Method == "PUT" || request.Method == "DELETE")
+            {
+                message.Method = HttpMethod.Post;
+                message.Headers.Add("X-HTTP-Method-Override", request.Method);
+            }
+
+            if (!string.IsNullOrEmpty(antiForgeryCookieName))
+            {
+                var antiForgeryCookie = cookieContainer.GetCookies(cookieOriginUri)
+                    .Cast<Cookie>()
+                    .SingleOrDefault(c => string.Equals(c.Name, antiForgeryCookieName));
+                if (antiForgeryCookie != null)
                 {
-                    message.Method = HttpMethod.Post;
-                    message.Headers.Add("X-HTTP-Method-Override", request.Method);
+                    message.Headers.Add(ApiConstants.AntiforgeryTokenHttpHeaderName, antiForgeryCookie.Value);
                 }
+            }
 
-                if (!string.IsNullOrEmpty(antiforgeryCookieName))
-                {
-                    var antiforgeryCookie = cookieContainer.GetCookies(cookieOriginUri)
-                        .Cast<Cookie>()
-                        .SingleOrDefault(c => string.Equals(c.Name, antiforgeryCookieName));
-                    if (antiforgeryCookie != null)
-                    {
-                        message.Headers.Add(ApiConstants.AntiforgeryTokenHttpHeaderName, antiforgeryCookie.Value);
-                    }
-                }
+            SendingOctopusRequest?.Invoke(request);
+            if (SendingOctopusRequestAsync is not null) await SendingOctopusRequestAsync.Invoke(request, cancellationToken);
 
-                SendingOctopusRequest?.Invoke(request);
+            BeforeSendingHttpRequest?.Invoke(message);
+            if (BeforeSendingHttpRequestAsync is not null) await BeforeSendingHttpRequestAsync.Invoke(message, cancellationToken);
 
-                BeforeSendingHttpRequest?.Invoke(message);
+            if (request.RequestResource != null)
+                message.Content = GetContent(request);
 
-                if (request.RequestResource != null)
-                    message.Content = GetContent(request);
+            Logger.Trace($"DispatchRequest: {message.Method} {message.RequestUri}");
 
-                Logger.Trace($"DispatchRequest: {message.Method} {message.RequestUri}");
+            var completionOption = readResponse
+                ? HttpCompletionOption.ResponseContentRead
+                : HttpCompletionOption.ResponseHeadersRead;
+            try
+            {
+                using var response = await client.SendAsync(message, completionOption, cancellationToken).ConfigureAwait(false);
 
-                var completionOption = readResponse
-                    ? HttpCompletionOption.ResponseContentRead
-                    : HttpCompletionOption.ResponseHeadersRead;
-                try
-                {
-                    using (var response = await client.SendAsync(message, completionOption).ConfigureAwait(false))
-                    {
-                        AfterReceivedHttpResponse?.Invoke(response);
+                AfterReceivedHttpResponse?.Invoke(response);
+                if (AfterReceivedHttpResponseAsync is not null) await AfterReceivedHttpResponseAsync.Invoke(response, cancellationToken);
 
-                        if (!response.IsSuccessStatusCode)
-                            throw await OctopusExceptionFactory.CreateException(response).ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode)
+                    throw await OctopusExceptionFactory.CreateException(response).ConfigureAwait(false);
 
-                        var resource = readResponse
-                            ? await ReadResponse<TResponseResource>(response).ConfigureAwait(false)
-                            : default(TResponseResource);
+                var resource = readResponse
+                    ? await ReadResponse<TResponseResource>(response).ConfigureAwait(false)
+                    : default(TResponseResource);
 
-                        var locationHeader = response.Headers.Location?.OriginalString;
-                        var octopusResponse = new OctopusResponse<TResponseResource>(request, response.StatusCode,
-                            locationHeader, resource);
-                        ReceivedOctopusResponse?.Invoke(octopusResponse);
+                var locationHeader = response.Headers.Location?.OriginalString;
+                var octopusResponse = new OctopusResponse<TResponseResource>(request, response.StatusCode,
+                    locationHeader, resource);
+                ReceivedOctopusResponse?.Invoke(octopusResponse);
+                if (ReceivedOctopusResponseAsync is not null) await ReceivedOctopusResponseAsync.Invoke(octopusResponse, cancellationToken);
 
-                        return octopusResponse;
-                    }
-                }
-                catch (TaskCanceledException)
-                {
-                    throw new TimeoutException($"Timeout getting response from {request.Uri}, client timeout is set to {client.Timeout}.");
-                }
+                return octopusResponse;
+            }
+            catch (OperationCanceledException)
+            {
+                throw new TimeoutException($"Timeout getting response from {request.Uri}, client timeout is set to {client.Timeout}.");
             }
         }
 

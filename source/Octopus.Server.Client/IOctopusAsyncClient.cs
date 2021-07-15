@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using Octopus.Client.Exceptions;
 using Octopus.Client.Model;
@@ -35,31 +36,55 @@ namespace Octopus.Client
         [EditorBrowsable(EditorBrowsableState.Never)]
         [Obsolete("This call is a blocking call. For a non-blocking call, access the root document through the IOctopusSystemAsyncRepository instead: client.Repository.LoadRootDocument()", false)]
         RootResource RootDocument { get; }
-        
+
         /// <summary>
         /// Occurs when a request is about to be sent.
         /// </summary>
+        [Obsolete("This is an async version of the Octopus Client. Please use the async overload.")]
         event Action<OctopusRequest> SendingOctopusRequest;
+
+        /// <summary>
+        /// Occurs when a request is about to be sent.
+        /// </summary>
+        event Func<OctopusRequest, CancellationToken, Task> SendingOctopusRequestAsync;
 
         /// <summary>
         /// Occurs when a response is received from the Octopus Server.
         /// </summary>
+        [Obsolete("This is an async version of the Octopus Client. Please use the async overload.")]
         event Action<OctopusResponse> ReceivedOctopusResponse;
+
+        /// <summary>
+        /// Occurs when a response is received from the Octopus Server.
+        /// </summary>
+        event Func<OctopusResponse, CancellationToken, Task> ReceivedOctopusResponseAsync;
 
         /// <summary>
         /// Occurs when a request is about to be sent.
         /// </summary>
+        [Obsolete("This is an async version of the Octopus Client. Please use the async overload.")]
         event Action<HttpRequestMessage> BeforeSendingHttpRequest;
+
+        /// <summary>
+        /// Occurs when a request is about to be sent.
+        /// </summary>
+        event Func<HttpRequestMessage, CancellationToken, Task> BeforeSendingHttpRequestAsync;
 
         /// <summary>
         /// Occurs when a response has been received.
         /// </summary>
+        [Obsolete("This is an async version of the Octopus Client. Please use the async overload.")]
         event Action<HttpResponseMessage> AfterReceivedHttpResponse;
+
+        /// <summary>
+        /// Occurs when a response has been received.
+        /// </summary>
+        event Func<HttpResponseMessage, CancellationToken, Task> AfterReceivedHttpResponseAsync;
 
         /// <summary>
         /// A simplified interface to commonly-used parts of the API.
         /// </summary>
-        IOctopusAsyncRepository Repository { get;}
+        IOctopusAsyncRepository Repository { get; }
 
         /// <summary>
         /// Indicates whether a secure (SSL) connection is being used to communicate with the server.

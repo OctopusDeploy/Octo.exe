@@ -14,6 +14,7 @@ This package contains the non-ILmerged client library for the HTTP API in Octopu
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <RootNamespace>Octopus.Client</RootNamespace>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition="!$([MSBuild]::IsOSUnixLike())">
     <TargetFrameworks>net452;netstandard2.0</TargetFrameworks>
